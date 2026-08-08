@@ -20,4 +20,22 @@ export default defineConfig({
   output: 'static',
   adapter: vercel(),
   integrations: [react()],
+  vite: {
+    ssr: {
+      /*
+       * GSAP entra al bundle del servidor en vez de quedar como dependencia
+       * externa. Su package.json publica `module: "index.js"` pero no declara
+       * `"type": "module"`, así que ese archivo es ESM con nombre de CJS. Node
+       * 22 local lo salva detectando la sintaxis; el runtime de Vercel lo carga
+       * por el loader CJS y revienta con "Cannot use import statement outside a
+       * module". Empaquetado, Node nunca lo resuelve desde node_modules.
+       *
+       * Sólo se usa en el navegador: en el servidor es peso muerto que igual se
+       * evalúa en cada arranque en frío. Sacarlo del todo es mover los imports
+       * adentro de los efectos, pero eso vuelve async el useLayoutEffect que
+       * mide el FLIP del disco, y ahí la transición pierde su cuadro inicial.
+       */
+      noExternal: ['gsap'],
+    },
+  },
 });
