@@ -21,7 +21,7 @@ const cover = shelf ? await getAlbum(shelf.ids[0]!).catch(() => null) : null;
 
 let title = SITE_TITLE;
 let description = 'An experiment in listening to records on the web. Pull a sleeve, drop the needle.';
-let image = undefined as string | undefined;
+let image = '/og.webp';
 
 if (shared) {
   title = `deadwax · ${shared.title} by ${shared.artist}`;
@@ -30,11 +30,12 @@ if (shared) {
 } else if (shelf) {
   title = `deadwax · ${shelf.name}`;
   description = `${shelf.name}: ${shelf.ids.length} records someone put on a shelf. Open it and drop the needle.`;
-  image = cover?.coverUrl;
+  // Si esa portada no se pudo traer, la del sitio es mejor que ninguna.
+  image = cover?.coverUrl ?? image;
 }
 ---
 
-<Base title={title} description={description} image={image}>
+<Base title={title} description={description} image={image} album={!!shared}>
   <main>
     <VinylApp client:load seed={SEED} />
   </main>

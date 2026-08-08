@@ -5,10 +5,16 @@ interface Props {
   title: string;
   description: string;
   image?: string | undefined;
+  album?: boolean | undefined;
 }
 
-const { title, description, image } = Astro.props;
+const { title, description, image, album } = Astro.props;
 const canonical = new URL(Astro.url.pathname + Astro.url.search, Astro.site ?? Astro.url.origin);
+
+// og:image no admite rutas relativas: el crawler no resuelve contra la página,
+// pide el path tal cual y no encuentra nada. Las portadas de iTunes ya vienen
+// absolutas y `new URL` las deja intactas.
+const ogImage = image ? new URL(image, Astro.site ?? Astro.url.origin).href : undefined;
 ---
 
 <!doctype html>
@@ -35,13 +41,17 @@ const canonical = new URL(Astro.url.pathname + Astro.url.search, Astro.site ?? A
     <meta name="description" content={description} />
 
     {/* Los crawlers no ejecutan JS: estas etiquetas se arman en el servidor. */}
-    <meta property="og:type" content="music.album" />
+    {/* music.album sólo cuando lo compartido es un disco. En la home no hay
+        álbum, y el tipo equivocado hace que algunos lectores busquen metadatos
+        de música que no existen. */}
+    <meta property="og:type" content={album ? 'music.album' : 'website'} />
+    <meta property="og:site_name" content="deadwax" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical.href} />
-    <meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
-    {image && <meta property="og:image" content={image} />}
-    {image && <meta name="twitter:image" content={image} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
 
     {/* Ruta absoluta desde la raíz servida: lo que está en public/ se publica en
         la raíz del sitio. Una ruta relativa al archivo fuente no existe en el
