@@ -1,0 +1,172 @@
+.cell {
+  position: relative;
+  list-style: none;
+  transition: opacity var(--dur-hover) var(--ease-sleeve);
+}
+
+.button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border-radius: 0;
+}
+
+.frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+}
+
+/* Sombra: pseudo-elemento con box-shadow estático, animado sólo por
+   opacity/transform. */
+/*
+ * El vinilo asoma por la derecha. Sobre el cuarto oscuro un negro real
+ * desaparece, así que el disco es un grafito con surcos de contraste alto y
+ * un filo claro que lo despega del fondo.
+ */
+.disc {
+  position: absolute;
+  inset: 2%;
+  z-index: 0;
+  border-radius: 50%;
+  background:
+    linear-gradient(118deg, transparent 26%, rgb(255 255 255 / 0.11) 40%, transparent 55%),
+    radial-gradient(circle at 50% 50%, #2b3033 0 16%, transparent 16.5%),
+    repeating-radial-gradient(circle at 50% 50%, #262b2e 0 1.1px, #14181a 1.1px 2.8px),
+    #191d1f;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  transform: translateX(0);
+  transition: transform var(--dur-hover) var(--ease-sleeve);
+}
+
+.cover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--ink-800);
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Dos renglones en vez de una línea truncada: los nombres largos entran. */
+.meta {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--s-3);
+  font-size: var(--t--1);
+  font-weight: 350;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: var(--ink-300);
+  opacity: 0;
+  transform: translateY(-3px);
+  transition:
+    opacity var(--dur-hover) var(--ease-sleeve),
+    transform var(--dur-hover) var(--ease-sleeve);
+}
+
+/* El texto no intercepta el mouse; el botón de borrar sí. */
+.meta > span {
+  pointer-events: none;
+}
+
+.action {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: start;
+  font-size: var(--t--1);
+  color: var(--ink-700);
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.action:hover,
+.action:focus-visible {
+  color: var(--bone);
+}
+
+.artist,
+.title {
+  grid-column: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.artist {
+  color: var(--ink-500);
+}
+
+.title {
+  color: var(--ink-100);
+  /* Hasta dos renglones; más que eso ya es ruido bajo la funda. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Proporcional al tamaño de funda: la grilla se achica para entrar en pantalla
+   y un valor fijo en px se desbalancea. */
+.cell:hover .disc,
+.cell:focus-within .disc {
+  transform: translateX(14%);
+}
+
+.cell:hover .meta,
+.cell:focus-within .meta {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Sin mouse no hay hover que revele nada: en táctil el texto vive puesto. */
+@media (hover: none) {
+  .meta {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Modo edición: la metadata queda fija y la funda deja de reproducir. */
+.editing .meta {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.editing .button {
+  cursor: default;
+}
+
+.editing .cover {
+  opacity: 0.55;
+  transition: opacity var(--dur-hover) var(--ease-sleeve);
+}
+
+.editing:hover .cover,
+.editing:focus-within .cover {
+  opacity: 0.75;
+}
+
+.editing .action {
+  color: var(--ink-300);
+}
+
+.editing .action:hover,
+.editing .action:focus-visible {
+  color: var(--bone);
+}
+
+/* En edición el disco no asoma: no hay nada que reproducir. */
+.editing:hover .disc,
+.editing:focus-within .disc {
+  transform: translateX(0);
+}

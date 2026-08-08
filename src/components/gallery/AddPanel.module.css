@@ -1,0 +1,132 @@
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--pad-top) clamp(20px, 5vw, 64px) clamp(32px, 6vh, 72px);
+  background: var(--ink-900);
+  overflow-y: auto;
+}
+
+/* Ancho de lectura, como About: buscar es escribir una línea, no llenar 1000px. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: var(--s-6);
+  width: var(--measure);
+}
+
+.field {
+  display: flex;
+  gap: var(--s-4);
+  align-items: baseline;
+  padding-bottom: var(--s-3);
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font-size: var(--t-1);
+  font-weight: 350;
+  letter-spacing: -0.005em;
+  background: none;
+  border: 0;
+  outline: none;
+  color: var(--bone);
+}
+
+.input::placeholder {
+  color: var(--ink-700);
+}
+
+.close {
+  flex: none;
+  font-size: var(--t--1);
+  letter-spacing: 0.02em;
+  color: var(--ink-500);
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.close:hover {
+  color: var(--bone);
+}
+
+.message {
+  font-size: var(--t-0);
+  color: var(--ink-300);
+}
+
+/* El encabezado de las sugerencias pesa más que un mensaje de estado. */
+.lead {
+  font-size: var(--t-2);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--bone);
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--s-6) var(--s-4);
+  list-style: none;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  width: 100%;
+  text-align: left;
+}
+
+.cover {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--ink-800);
+  transition: opacity var(--dur-hover) var(--ease-sleeve);
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.result:hover .cover,
+.result:focus-visible .cover {
+  opacity: 0.78;
+}
+
+/* Dos líneas de detalle, cero fricción. */
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  font-size: var(--t--1);
+}
+
+.artist,
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artist {
+  color: var(--ink-500);
+}
+
+.title {
+  color: var(--ink-100);
+}
+
+.already {
+  color: var(--ink-700);
+}

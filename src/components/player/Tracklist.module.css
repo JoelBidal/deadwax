@@ -1,0 +1,112 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+/* Sin alto máximo: el disco entero se lee de una, y lo que sobra lo scrollea la
+   página. Una lista de once temas no es una caja con barra propia. */
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  list-style: none;
+}
+
+/* Los títulos arrancan en el mismo eje que el nombre del álbum: la marca del
+   track activo vive fuera de la columna de texto, colgando a la izquierda. */
+.row {
+  position: relative;
+  display: grid;
+  /* Un control de formulario se achica a su contenido aunque sea grid: sin esto
+     las duraciones no llegan al margen derecho y la columna queda dentada. */
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-4);
+  align-items: baseline;
+  padding: var(--s-1) 0;
+  text-align: left;
+  font-size: var(--t-0);
+  font-weight: 350;
+  color: var(--ink-300);
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.row:hover {
+  color: var(--ink-100);
+}
+
+.mark {
+  position: absolute;
+  top: 50%;
+  left: -16px;
+  width: 6px;
+  height: 6px;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.active {
+  color: var(--bone);
+  font-weight: 500;
+}
+
+.active .mark {
+  background: var(--accent);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.length {
+  font-size: var(--t--1);
+  color: var(--ink-500);
+}
+
+/* Separado de la lista por una hairline: es una salida del sitio, no un track. */
+.foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding-top: var(--s-4);
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+.note {
+  font-size: var(--t--1);
+  color: var(--ink-500);
+}
+
+.full {
+  font-size: var(--t--1);
+  color: var(--ink-100);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--ink-100) 35%, transparent);
+  text-underline-offset: 4px;
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.full:hover,
+.full:focus-visible {
+  color: var(--bone);
+  text-decoration-color: currentColor;
+}
+
+/* Con la columna angosta no queda margen a la izquierda del que colgar el
+   punto, así que entra en la fila y el título se corre para dejarle el lugar. */
+@media (max-width: 860px), (max-aspect-ratio: 1 / 1) {
+  .row {
+    padding-left: 16px;
+  }
+
+  .mark {
+    left: 0;
+  }
+}

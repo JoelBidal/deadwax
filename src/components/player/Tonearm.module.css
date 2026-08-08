@@ -1,0 +1,96 @@
+/*
+ * Geometría: el pivote vive fuera del plato, arriba a la derecha. El brazo
+ * cuelga hacia abajo y rota en sentido horario, así que a más ángulo la púa
+ * entra hacia el centro, igual que un disco real. Con pivote en (102%, 4%) y
+ * largo 53%, el recorrido 18°→32° deja la púa entre el surco exterior y la
+ * etiqueta.
+ */
+.tonearm {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.pivot {
+  position: absolute;
+  left: 102%;
+  top: 4%;
+  width: 5.5%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, var(--metal-mid), var(--metal-dark) 70%);
+  box-shadow:
+    0 2px 6px -1px var(--shade),
+    inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.arm {
+  position: absolute;
+  left: 102%;
+  top: 4%;
+  width: 1.6%;
+  height: 53%;
+  transform-origin: 50% 0;
+  transform: rotate(calc((var(--angle) + var(--lift, 0)) * 1deg));
+  transition: transform 260ms linear;
+}
+
+/* Contrapeso: cuelga del lado opuesto al pivote. */
+.arm::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 320%;
+  height: 14%;
+  translate: -50% 0;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--metal-mid), var(--metal-dark));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+.tube {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--metal-dark), var(--metal-light) 45%, var(--metal-mid));
+  box-shadow: 0 3px 10px -2px var(--shade);
+}
+
+/* Cápsula: el bloque angulado del extremo, donde va la púa. */
+.head {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 520%;
+  height: 13%;
+  translate: -62% 0;
+  rotate: -22deg;
+  transform-origin: 50% 0;
+  border-radius: 1px 1px 3px 3px;
+  background: linear-gradient(180deg, var(--metal-light), var(--metal-dark));
+  box-shadow: 0 4px 12px -3px var(--shade);
+}
+
+.head::after {
+  content: '';
+  position: absolute;
+  left: 26%;
+  top: 100%;
+  width: 8%;
+  height: 45%;
+  background: var(--metal-light);
+}
+
+.lifted .tube,
+.lifted .head {
+  filter: brightness(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arm {
+    transition: none;
+  }
+}

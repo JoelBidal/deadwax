@@ -1,0 +1,57 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  image?: string | undefined;
+}
+
+const { title, description, image } = Astro.props;
+const canonical = new URL(Astro.url.pathname + Astro.url.search, Astro.site ?? Astro.url.origin);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    {/* Antes del primer pintado: si esperáramos a React, el tema entraría con un
+        flash del contrario. Sin elección guardada manda el sistema operativo. */}
+    <script is:inline>
+      (() => {
+        let saved = null;
+        try {
+          saved = localStorage.getItem('vinyl:theme');
+        } catch {}
+        const dark = saved
+          ? saved === 'dark'
+          : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    {/* Los crawlers no ejecutan JS: estas etiquetas se arman en el servidor. */}
+    <meta property="og:type" content="music.album" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical.href} />
+    <meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
+    {image && <meta property="og:image" content={image} />}
+    {image && <meta name="twitter:image" content={image} />}
+
+    <link rel="icon" href="../../src/public/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300..600&family=Geist+Mono:wght@300..500&display=swap"
+    />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

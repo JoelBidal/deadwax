@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import VinylApp from '../components/VinylApp';
+import { SEED } from '../data/records';
+import { getAlbum } from '../lib/itunes';
+import { decodeShelf } from '../lib/shelf';
+import { SITE_TITLE } from '../lib/meta';
+
+// On-demand en vez de prerenderizada: un enlace compartido tiene que llegar
+// con su título y su portada ya en el HTML, porque los crawlers no corren JS.
+export const prerender = false;
+
+const params = Astro.url.searchParams;
+
+const requested = params.get('record') ?? '';
+const shared = /^\d+$/.test(requested) ? await getAlbum(requested).catch(() => null) : null;
+
+// De una estantería alcanza con la primera tapa: la miniatura del enlace.
+const shelf = decodeShelf(params.get('shelf') ?? '');
+const cover = shelf ? await getAlbum(shelf.ids[0]!).catch(() => null) : null;
+
+let title = SITE_TITLE;
+let description = 'An experiment in listening to records on the web. Pull a sleeve, drop the needle.';
+let image = undefined as string | undefined;
+
+if (shared) {
+  title = `deadwax · ${shared.title} by ${shared.artist}`;
+  description = `${shared.title} by ${shared.artist}${shared.year ? `, ${shared.year}` : ''}. Spinning at 33⅓ RPM on deadwax.`;
+  image = shared.coverUrl;
+} else if (shelf) {
+  title = `deadwax · ${shelf.name}`;
+  description = `${shelf.name}: ${shelf.ids.length} records someone put on a shelf. Open it and drop the needle.`;
+  image = cover?.coverUrl;
+}
+---
+
+<Base title={title} description={description} image={image}>
+  <main>
+    <VinylApp client:load seed={SEED} />
+  </main>
+</Base>

@@ -1,0 +1,158 @@
+/*
+ * La estantería crece hacia abajo: si el usuario agrega discos, aparece una
+ * fila nueva y la página scrollea. Las columnas las fija useGridLayout.
+ */
+.gallery {
+  --gap-x: clamp(20px, 2.6vw, 44px);
+  --gap-y: clamp(62px, 6.7vh, 80px);
+  --cols: 5;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: var(--pad-top) clamp(16px, 4vw, 48px) var(--pad-bottom);
+  --pad-bottom: calc(clamp(32px, 6vh, 72px) + 48px);
+  /* `clip` y no `hidden`: el disco que asoma en la última columna se pasa unos
+     píxeles del margen y abría scroll horizontal. `hidden` habría convertido la
+     página en un contenedor de scroll; `clip` sólo recorta. */
+  overflow-x: clip;
+}
+
+/* Centrado y no baseline: un logo no tiene línea de base sobre la que alinear. */
+.nav {
+  display: flex;
+  gap: var(--s-5);
+  align-items: center;
+  justify-content: space-between;
+  width: var(--container);
+  margin-inline: auto;
+  font-size: var(--t--1);
+}
+
+/* El logo hereda el color del texto, así que sigue al tema sin saber de temas. */
+.name {
+  display: flex;
+  color: var(--bone);
+}
+
+.name svg {
+  display: block;
+}
+
+.links {
+  display: flex;
+  gap: var(--s-5);
+  align-items: center;
+  flex: none;
+}
+
+.link {
+  font-size: var(--t--1);
+  letter-spacing: -0.005em;
+  color: var(--ink-700);
+  /* "Open your own shelf" es un <a> de verdad; el resto son botones. Se ven igual. */
+  text-decoration: none;
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--bone);
+}
+
+.linkOn {
+  color: var(--bone);
+}
+
+/* La regla vertical usa la altura del renglón, no la del texto: se lee como
+   separador y no como subrayado suelto. */
+.theme {
+  padding-left: var(--s-5);
+  border-left: 1px solid var(--line);
+  line-height: 1.6;
+}
+
+/* Estantería ajena: quien la abre tiene que saber de quién es antes de mirarla. */
+.shelfHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  width: var(--container);
+  margin-inline: auto;
+  padding-top: var(--s-7);
+}
+
+.shelfName {
+  font-size: var(--t-2);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--bone);
+}
+
+.shelfNote {
+  font-size: var(--t--1);
+  letter-spacing: -0.005em;
+  color: var(--ink-500);
+}
+
+/* La estantería se centra en lo que queda entre la navegación y el pie. */
+.shelf {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  width: 100%;
+  padding-block: clamp(24px, 5vh, 64px);
+}
+
+/* Las columnas las fija el CSS y no JS: con un hook, el servidor pintaba cinco
+   columnas y el cliente las corregía después de hidratar, con el salto a la vista. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: var(--gap-y) var(--gap-x);
+  width: var(--container);
+}
+
+/* El disco asoma hacia la derecha: la funda con hover tiene que pintarse por
+   encima de su vecina, que en orden de documento va después. */
+.grid li:hover,
+.grid li:focus-within {
+  z-index: 1;
+}
+
+@media (max-width: 900px) {
+  .gallery {
+    --cols: 3;
+    --gap-y: clamp(48px, 6vh, 72px);
+  }
+}
+
+/* La marca se queda con su renglón y los enlaces bajan: cinco no entran al lado
+   de "deadwax" y la fila se salía de la pantalla. */
+@media (max-width: 760px) {
+  .nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-4);
+  }
+
+  .links {
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-4);
+  }
+
+  /* Sin fila que separar, la regla vertical sobra. */
+  .theme {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* Dos columnas: tres fundas en 375px son estampillas, y la portada es el disco. */
+@media (max-width: 560px) {
+  .gallery {
+    --cols: 2;
+    --gap-x: 20px;
+    --gap-y: 52px;
+  }
+}

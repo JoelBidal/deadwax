@@ -1,0 +1,109 @@
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  /* Flex y no grid: una grilla dimensiona su track por el max-content del hijo,
+     y la URL con `white-space: nowrap` mide 1500px aunque se muestre recortada.
+     El track se estiraba a lo ancho de la URL y el panel quedaba descentrado. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--pad-top) clamp(20px, 5vw, 64px) clamp(32px, 6vh, 72px);
+  background: var(--ink-900);
+  overflow-y: auto;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: var(--s-5);
+  width: var(--measure);
+}
+
+.field {
+  display: flex;
+  gap: var(--s-4);
+  align-items: baseline;
+  padding-bottom: var(--s-3);
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font-size: var(--t-1);
+  font-weight: 350;
+  letter-spacing: -0.005em;
+  background: none;
+  border: 0;
+  outline: none;
+  color: var(--bone);
+}
+
+.input::placeholder {
+  color: var(--ink-700);
+}
+
+.close {
+  flex: none;
+  font-size: var(--t--1);
+  letter-spacing: 0.02em;
+  color: var(--ink-500);
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.close:hover {
+  color: var(--bone);
+}
+
+.lead {
+  font-size: var(--t-2);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--bone);
+}
+
+.body {
+  font-size: var(--t-0);
+  line-height: 1.65;
+  color: var(--ink-300);
+}
+
+.linkRow {
+  display: flex;
+  gap: var(--s-4);
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: var(--s-4);
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+/* La URL es larga por definición: se muestra recortada, no se envuelve. */
+.url {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--t--1);
+  color: var(--ink-500);
+}
+
+.copy {
+  flex: none;
+  font-size: var(--t--1);
+  letter-spacing: -0.005em;
+  color: var(--ink-100);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--ink-100) 35%, transparent);
+  text-underline-offset: 4px;
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.copy:hover,
+.copy:focus-visible {
+  color: var(--bone);
+  text-decoration-color: currentColor;
+}

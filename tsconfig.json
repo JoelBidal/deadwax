@@ -1,0 +1,12 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist", "node_modules"],
+  // `jsx` se deja como lo fija astro/tsconfigs/base ("preserve"): la
+  // transformación la hace el plugin de React de Vite. Pisarlo con "react-jsx"
+  // hace que esbuild transforme primero y rompe la hidratación con
+  // "_jsxDEV is not a function".
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true
+  }
+}

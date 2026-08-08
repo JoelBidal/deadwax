@@ -1,0 +1,31 @@
+.controls {
+  display: flex;
+  gap: var(--s-5);
+  align-items: baseline;
+  font-size: var(--t-0);
+  letter-spacing: 0.01em;
+}
+
+.button {
+  min-width: 4em; 
+  padding: 0;
+  color: var(--ink-300);
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.button:hover:not(:disabled),
+.button:focus-visible {
+  color: var(--bone);
+}
+
+.button:disabled {
+  color: var(--ink-700);
+  cursor: default;
+}
+
+/* Play es la acción principal: mismo tamaño, más peso. */
+.play {
+  text-align: center;
+  font-weight: 500;
+  color: var(--bone);
+}

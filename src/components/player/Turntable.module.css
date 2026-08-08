@@ -1,0 +1,240 @@
+/*
+ * Columna que scrollea, no una grilla centrada: con `place-items: center` sobre
+ * un fijo, lo que no entra se sale por arriba y por abajo y queda inalcanzable.
+ * Así, la escena se centra mientras sobra alto y crece hacia abajo cuando no.
+ * El padding es el mismo de la galería para que nada se mueva al entrar.
+ */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: var(--pad-top) clamp(16px, 4vw, 48px) clamp(32px, 6vh, 72px);
+  background: var(--ink-900);
+  overflow-y: auto;
+}
+
+/* La escena recibe el foco al abrirse, pero no es un control: no se dibuja. */
+.stage:focus {
+  outline: none;
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 1fr);
+  gap: clamp(32px, 6vw, 88px);
+  align-items: center;
+  flex: 1;
+  width: var(--container);
+  margin-inline: auto;
+  padding-block: clamp(24px, 5vh, 64px);
+}
+
+/*
+ * Izquierda: el disco y su transporte. Derecha: sólo información.
+ * El brazo vive fuera del plato, a la derecha, así que la caja reserva ese
+ * espacio. El transporte usa la misma caja y el mismo padding para centrarse
+ * contra el disco redondo y no contra el conjunto disco+brazo, que se ve
+ * corrido aunque técnicamente esté centrado.
+ */
+.deckSide {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 3.5vh, 40px);
+  align-items: center;
+  min-width: 0;
+}
+
+.platterWrap,
+.transport {
+  width: min(46vh, 100%);
+  padding-right: 9%;
+}
+
+.deck {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.armLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.transport {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  align-items: center;
+}
+
+.meters {
+  display: flex;
+  gap: var(--s-5);
+  align-items: center;
+  font-size: var(--t--1);
+}
+
+.time {
+  color: var(--ink-300);
+}
+
+.crackleWrap {
+  position: relative;
+}
+
+.crackle {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  font-size: var(--t--1);
+  letter-spacing: 0.02em;
+  color: var(--ink-500);
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+/* Encendido, el texto vale lo mismo que el punto: el control se lee entero de
+   un color solo, y apagado se apaga entero. */
+.crackleOn {
+  color: var(--bone);
+}
+
+.crackle:hover:not(.crackleOn) {
+  color: var(--ink-100);
+}
+
+/* Cae hacia abajo: encima están los controles de transporte y taparlos justo
+   cuando el mouse pasa cerca es peor que el dato que agrega.
+   `visibility` y no sólo `opacity`: apagado no debe interceptar el mouse. */
+.tip {
+  position: absolute;
+  top: calc(100% + var(--s-3));
+  left: 50%;
+  z-index: 1;
+  width: max-content;
+  max-width: 210px;
+  padding: var(--s-2) var(--s-3);
+  translate: -50% -4px;
+  font-size: var(--t--1);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  text-align: left;
+  color: var(--ink-300);
+  background: var(--ink-800);
+  box-shadow: inset 0 0 0 1px var(--line);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-hover) var(--ease-sleeve),
+    translate var(--dur-hover) var(--ease-sleeve),
+    visibility var(--dur-hover);
+}
+
+.crackleWrap:hover .tip,
+.crackleWrap:focus-within .tip {
+  opacity: 1;
+  visibility: visible;
+  translate: -50% 0;
+}
+
+/* `currentColor` en vez de un token: el punto toma el color del texto que tiene
+   al lado, así que hover, encendido y apagado los mueven a los dos juntos. */
+.dot {
+  width: 5px;
+  height: 5px;
+  margin-top: -1px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px currentColor;
+  transition: background var(--dur-hover) var(--ease-sleeve);
+}
+
+.dotOn {
+  background: currentColor;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.album {
+  font-size: var(--t-4);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: var(--bone);
+}
+
+.artist {
+  font-size: var(--t-1);
+  font-weight: 350;
+  color: var(--ink-300);
+}
+
+.year {
+  color: var(--ink-500);
+}
+
+.message {
+  font-size: var(--t-0);
+  color: var(--ink-300);
+}
+
+/* Mismo ancho y misma línea que la navegación de la galería. */
+.topBar {
+  display: flex;
+  gap: var(--s-5);
+  align-items: baseline;
+  justify-content: space-between;
+  flex: none;
+  width: var(--container);
+  margin-inline: auto;
+  font-size: var(--t--1);
+  letter-spacing: -0.005em;
+}
+
+.link {
+  color: var(--ink-500);
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--bone);
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 1 / 1) {
+  .inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(24px, 5vh, 48px);
+    justify-items: center;
+    text-align: center;
+  }
+
+  .platterWrap {
+    width: min(38vh, 78vw);
+  }
+
+  /* La caja se centra, pero su contenido se estira: con `align-items: center`
+     cada fila de la lista medía lo que su texto y las duraciones quedaban
+     dentadas en vez de formar columna. */
+  .info {
+    align-items: stretch;
+    width: min(420px, 100%);
+  }
+
+  .titles {
+    align-items: center;
+  }
+}

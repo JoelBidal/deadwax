@@ -1,0 +1,71 @@
+.cell {
+  position: relative;
+  list-style: none;
+}
+
+.button {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* El mismo vinilo que asoma en el hover de las fundas. Acá no hay portada que
+   lo tape, así que ya está afuera: es un disco esperando su lugar. */
+.disc {
+  position: absolute;
+  inset: 2%;
+  z-index: 0;
+  border-radius: 50%;
+  background:
+    linear-gradient(118deg, transparent 26%, rgb(255 255 255 / 0.11) 40%, transparent 55%),
+    radial-gradient(circle at 50% 50%, #2b3033 0 16%, transparent 16.5%),
+    repeating-radial-gradient(circle at 50% 50%, #262b2e 0 1.1px, #14181a 1.1px 2.8px),
+    #191d1f;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  transform: translateX(18%);
+  transition: transform var(--dur-hover) var(--ease-sleeve);
+}
+
+/* Opaca, como cualquier funda: del disco sólo se ve lo que asoma. Translúcida
+   dejaba ver el vinilo entero y en modo claro se leía como una mancha gris. */
+.sleeve {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--ink-800);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow var(--dur-hover) var(--ease-sleeve);
+}
+
+/* Donde las otras fundas muestran artista y título. */
+.label {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  left: 0;
+  z-index: 1;
+  font-size: var(--t--1);
+  font-weight: 350;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: var(--ink-500);
+  transition: color var(--dur-hover) var(--ease-sleeve);
+}
+
+.button:hover .disc,
+.button:focus-visible .disc {
+  transform: translateX(26%);
+}
+
+.button:hover .sleeve,
+.button:focus-visible .sleeve {
+  box-shadow: inset 0 0 0 1px var(--ink-700);
+}
+
+.button:hover .label,
+.button:focus-visible .label {
+  color: var(--bone);
+}

@@ -1,0 +1,77 @@
+import type { Seed } from '../lib/types';
+
+// Generado por scripts/build-seed.mjs — no editar a mano.
+export const SEED: Seed[] = [
+  {
+    id: '1443160553',
+    title: "My Beautiful Dark Twisted Fantasy",
+    artist: "Kanye West",
+    year: 2010,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/d1/74/da/d174dacf-5782-dfe2-19f7-ce037dcd0237/00602527584935.rgb.jpg/600x600bb.jpg',
+    accent: '#ea2842',
+  },
+  {
+    id: '800092985',
+    title: "The Queen Is Dead",
+    artist: "The Smiths",
+    year: 1986,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/1a/e8/70/1ae870c3-b402-096b-c4c4-8022af5a2ed9/745099189662.jpg/600x600bb.jpg',
+    accent: '#6e8674',
+  },
+  {
+    id: '1408996052',
+    title: "Swimming",
+    artist: "Mac Miller",
+    year: 2018,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/e3/38/b5/e338b529-da3f-b4b9-b8f9-1fae428e7a23/093624905899.jpg/600x600bb.jpg',
+    accent: '#b7aeae',
+  },
+  {
+    id: '663097964',
+    title: "AM",
+    artist: "Arctic Monkeys",
+    year: 2013,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/600x600bb.jpg',
+    accent: '#6c8588',
+  },
+  {
+    id: '1793702595',
+    title: "Hurry Up Tomorrow",
+    artist: "The Weeknd",
+    year: 2025,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/13/fd/a3/13fda38d-fc63-ddc3-1cf2-c09251adc532/25UMGIM09489.rgb.jpg/600x600bb.jpg',
+    accent: '#b56a3f',
+  },
+  {
+    id: '1853635930',
+    title: "Love Is A Kingdom",
+    artist: "Tems",
+    year: 2025,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/c3/59/9a/c3599a96-fb7c-d4f3-c9ce-664128e4e94c/196873703305.jpg/600x600bb.jpg',
+    accent: '#c26532',
+  },
+  {
+    id: '1526194184',
+    title: "Hot Fuss",
+    artist: "The Killers",
+    year: 2004,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/07/1a/5a/071a5aee-6e42-060c-35b9-6a6e45b9ea59/06UMGIM10441.rgb.jpg/600x600bb.jpg',
+    accent: '#83a7d1',
+  },
+  {
+    id: '1146195596',
+    title: "Blonde",
+    artist: "Frank Ocean",
+    year: 2016,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/bb/45/68/bb4568f3-68cd-619d-fbcb-4e179916545d/BlondCover-Final.jpg/600x600bb.jpg',
+    accent: '#90817b',
+  },
+  {
+    id: '1810267152',
+    title: "LOVED",
+    artist: "Parcels",
+    year: 2025,
+    coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/17/dc/43/17dc433f-27cb-3cd7-1469-2184ae99b7b2/5056556160120_cover.jpg/600x600bb.jpg',
+    accent: '#5f9f56',
+  },
+];
