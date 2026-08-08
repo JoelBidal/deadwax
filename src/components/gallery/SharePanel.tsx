@@ -23,11 +23,17 @@ export default function SharePanel({ ids, initialName, onSaveName, onClose }: Pr
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const shelfName = name.trim() || 'A shelf';
-  const url = `${location.origin}${location.pathname}?shelf=${encodeShelf({ name: shelfName, ids })}`;
+  // El nombre no es decoración: es lo primero que ve quien abre el enlace, y sin
+  // él la estantería llega firmada como "A shelf". Hasta que exista, no hay link.
+  const shelfName = name.trim();
+  const named = shelfName.length > 0;
+  const url = named
+    ? `${location.origin}${location.pathname}?shelf=${encodeShelf({ name: shelfName, ids })}`
+    : '';
 
   const copy = async () => {
-    onSaveName(name.trim());
+    if (!named) return;
+    onSaveName(shelfName);
     try {
       await navigator.clipboard.writeText(url);
       setCopied('ok');
@@ -66,8 +72,12 @@ export default function SharePanel({ ids, initialName, onSaveName, onClose }: Pr
         </p>
 
         <div className={styles.linkRow}>
-          <span className={styles.url}>{url}</span>
-          <button type="button" className={styles.copy} onClick={copy}>
+          {named ? (
+            <span className={styles.url}>{url}</span>
+          ) : (
+            <span className={styles.waiting}>Name the shelf and the link appears.</span>
+          )}
+          <button type="button" className={styles.copy} onClick={copy} disabled={!named}>
             {copied === 'ok' ? 'Copied' : copied === 'fail' ? 'Copy failed' : 'Copy link'}
           </button>
         </div>

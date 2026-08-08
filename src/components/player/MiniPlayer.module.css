@@ -115,7 +115,10 @@
   justify-self: center;
 }
 
-.stop {
+.right {
+  display: flex;
+  gap: var(--s-4);
+  align-items: center;
   justify-self: end;
 }
 
@@ -156,6 +159,14 @@
  * completos en el tocadiscos a un toque de distancia. Play y Close se quedan
  * hasta el final porque son lo único que no se puede hacer desde otro lado.
  */
+@media (max-width: 900px) {
+  /* El volumen del sistema ya está a mano en un teléfono, y acá compite por el
+     ancho con lo que sólo se puede hacer desde esta barra. */
+  .volume {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
   .time {
     display: none;

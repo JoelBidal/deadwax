@@ -120,6 +120,32 @@
   z-index: 1;
 }
 
+/* La que se está arrastrando va por encima de todas y no de la de al lado. */
+.lifted {
+  z-index: 3 !important;
+  cursor: grabbing;
+}
+
+.lifted .button {
+  cursor: grabbing;
+}
+
+/* Instrucción de modo. Ocupa su lugar siempre; sólo se enciende en edición. */
+.hint {
+  width: var(--container);
+  margin-inline: auto;
+  padding-top: var(--s-4);
+  font-size: var(--t--1);
+  letter-spacing: -0.005em;
+  color: var(--ink-700);
+}
+
+/* `visibility` y no `display`: apagado tiene que seguir midiendo lo mismo, que
+   es justo lo que evita el salto de la grilla al entrar y salir de edición. */
+.hintOff {
+  visibility: hidden;
+}
+
 @media (max-width: 900px) {
   .gallery {
     --cols: 3;

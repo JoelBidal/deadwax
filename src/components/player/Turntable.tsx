@@ -1,11 +1,14 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
-import type { AlbumDetail, LibraryRecord, Track } from '../../lib/types';
+import type { AlbumDetail, CrackleLevel, LibraryRecord, Track } from '../../lib/types';
 import { mmss } from '../../lib/format';
+import { softHome } from '../../lib/nav';
+import { Mark } from '../Logo';
 import Platter from './Platter';
 import Tonearm from './Tonearm';
 import Tracklist from './Tracklist';
 import Controls from './Controls';
+import Volume from './Volume';
 import styles from './Turntable.module.css';
 
 type Props = {
@@ -17,17 +20,27 @@ type Props = {
   playing: boolean;
   time: number;
   duration: number;
-  crackle: boolean;
+  crackle: CrackleLevel;
+  volume: number;
   originRect: DOMRect | null;
   onToggle: () => void;
   onPrev: () => void;
   onNext: () => void;
   onPick: (index: number) => void;
   onCrackle: () => void;
+  onVolume: (value: number) => void;
+  onHome: () => void;
   onClose: () => void;
 };
 
 const REDUCED = '(prefers-reduced-motion: reduce)';
+
+/** Cuánto polvo, en palabras: es lo que anuncia el lector de pantalla. */
+const CRACKLE_LABEL: Record<CrackleLevel, string> = {
+  off: 'off',
+  normal: 'normal',
+  high: 'high',
+};
 
 export default function Turntable(props: Props) {
   const { record, album, status, track, trackIndex, playing, time, duration, originRect } = props;
@@ -149,12 +162,24 @@ export default function Turntable(props: Props) {
       style={{ '--accent': record.accent } as React.CSSProperties}
     >
       <div className={styles.topBar}>
-        <button type="button" className={styles.link} onClick={handleClose}>
-          Back
-        </button>
-        <button type="button" className={styles.link} onClick={handleShare}>
-          {copied ? 'Link copied' : 'Share'}
-        </button>
+        {/* Salida del sitio, no del disco: por eso es un enlace de verdad y no
+            comparte lugar con los dos botones de la derecha. */}
+        <a
+          className={styles.mark}
+          href="/"
+          aria-label="deadwax home"
+          onClick={softHome(props.onHome)}
+        >
+          <Mark />
+        </a>
+        <div className={styles.topActions}>
+          <button type="button" className={styles.link} onClick={handleClose}>
+            Back to the shelf
+          </button>
+          <button type="button" className={styles.link} onClick={handleShare}>
+            {copied ? 'Link copied' : 'Share album'}
+          </button>
+        </div>
       </div>
 
       <div className={styles.inner}>
@@ -182,23 +207,36 @@ export default function Turntable(props: Props) {
                 <span className={`${styles.time} tabular`}>
                   {mmss(time)} / {mmss(duration)}
                 </span>
+                <Volume value={props.volume} onChange={props.onVolume} />
                 <span className={styles.crackleWrap}>
+                  {/* Un botón que cicla y no tres opciones: son tres estados de
+                      una misma cosa, y tres controles pesarían más que el disco. */}
                   <button
                     type="button"
-                    className={`${styles.crackle} ${props.crackle ? styles.crackleOn : ''}`}
+                    className={`${styles.crackle} ${
+                      props.crackle === 'off' ? '' : styles.crackleOn
+                    }`}
                     onClick={props.onCrackle}
-                    aria-pressed={props.crackle}
+                    aria-label={`Crackle: ${CRACKLE_LABEL[props.crackle]}. Click to change.`}
                     aria-describedby="crackle-tip"
                   >
-                    <span
-                      className={`${styles.dot} ${props.crackle ? styles.dotOn : ''}`}
-                      aria-hidden="true"
-                    />
+                    <span className={styles.dots} aria-hidden="true">
+                      <span
+                        className={`${styles.dot} ${
+                          props.crackle === 'off' ? '' : styles.dotOn
+                        }`}
+                      />
+                      <span
+                        className={`${styles.dot} ${
+                          props.crackle === 'high' ? styles.dotOn : ''
+                        }`}
+                      />
+                    </span>
                     Crackle
                   </button>
                   <span id="crackle-tip" role="tooltip" className={styles.tip}>
                     The dust and static a needle picks up out of the groove. Synthesised here, not
-                    recorded.
+                    recorded. Off, normal, or heavy.
                   </span>
                 </span>
               </div>

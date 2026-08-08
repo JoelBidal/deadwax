@@ -7,8 +7,9 @@
   background:
     radial-gradient(circle at 50% 50%, var(--felt) 0 99%, transparent 99.5%),
     radial-gradient(circle at 50% 30%, rgb(255 255 255 / 0.04), transparent 60%);
+  /* Más corta y menos densa que antes: apoyada sobre el mueble, no levitando. */
   box-shadow:
-    0 26px 44px -26px color-mix(in oklab, var(--accent) 14%, var(--shade)),
+    0 14px 30px -24px color-mix(in oklab, var(--accent) 12%, var(--shade)),
     inset 0 0 0 1px rgb(255 255 255 / 0.05);
 }
 

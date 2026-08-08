@@ -98,9 +98,20 @@
   object-fit: cover;
 }
 
-.result:hover .cover,
-.result:focus-visible .cover {
+.result:hover:not(:disabled) .cover,
+.result:focus-visible:not(:disabled) .cover {
   opacity: 0.78;
+}
+
+/* Ya está en la estantería: la portada se apaga y pierde el color, así que se
+   descarta de un vistazo sin tener que leer el renglón de abajo. */
+.result:disabled {
+  cursor: default;
+}
+
+.result:disabled .cover {
+  opacity: 0.3;
+  filter: grayscale(1);
 }
 
 /* Dos líneas de detalle, cero fricción. */
@@ -128,5 +139,9 @@
 }
 
 .already {
+  color: var(--ink-700);
+}
+
+.result:disabled .artist {
   color: var(--ink-700);
 }

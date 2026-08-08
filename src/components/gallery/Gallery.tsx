@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import type { LibraryRecord } from '../../lib/types';
+import { softHome } from '../../lib/nav';
 import Sleeve from './Sleeve';
 import AddSlot from './AddSlot';
 import styles from './Gallery.module.css';
@@ -20,7 +21,40 @@ type Props = {
   onToggleEdit: () => void;
   onToggleTheme: () => void;
   onDelete: (id: string) => void;
+  onReorder: (ids: string[]) => void;
+  onRemoveAll: () => void;
+  onHome: () => void;
 };
+
+type Slot = { left: number; top: number; right: number; bottom: number };
+
+type Drag = {
+  id: string;
+  el: HTMLLIElement;
+  pointerId: number;
+  /** Dónde agarró el puntero dentro de la funda, para que no salte al tomarla. */
+  grabX: number;
+  grabY: number;
+  /** Posición de layout de la funda, sin el transform que la sigue. */
+  baseLeft: number;
+  baseTop: number;
+  lastX: number;
+  lastY: number;
+  /**
+   * Las casillas de la grilla en coordenadas de página, medidas una sola vez.
+   * Las fundas se permutan entre casillas fijas, así que la geometría no cambia
+   * durante el arrastre; leerla de los elementos daría posiciones a mitad de
+   * animación y el objetivo saltaría de una a otra.
+   */
+  slots: Slot[];
+  /** Hasta cruzar el umbral no es un arrastre: es un click que todavía no soltó. */
+  active: boolean;
+  fromX: number;
+  fromY: number;
+};
+
+/** Cuánto hay que moverse para que deje de ser un click. */
+const THRESHOLD = 5;
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -37,19 +71,189 @@ export default function Gallery({
   onToggleEdit,
   onToggleTheme,
   onDelete,
+  onReorder,
+  onRemoveAll,
+  onHome,
 }: Props) {
   const visiting = shelfName !== null;
   const gridRef = useRef<HTMLUListElement>(null);
   const prevCount = useRef(records.length);
+  const dragRef = useRef<Drag | null>(null);
+  /** Dónde estaba cada funda antes del último reordenamiento, para el FLIP. */
+  const prevRects = useRef<Map<string, DOMRect> | null>(null);
+  const [announce, setAnnounce] = useState('');
+  const [confirmWipe, setConfirmWipe] = useState(false);
+
+  const ids = records.map((r) => r.id);
+  const showHint = editing && !visiting && records.length > 1;
+
+  /** Mueve un id de una posición a otra y devuelve la lista entera. */
+  const moved = (id: string, to: number) => {
+    const next = ids.filter((other) => other !== id);
+    next.splice(Math.max(0, Math.min(next.length, to)), 0, id);
+    return next;
+  };
+
+  const sleeves = () =>
+    [...(gridRef.current?.querySelectorAll<HTMLLIElement>(':scope > li[data-id]') ?? [])];
+
+  const snapshot = () => {
+    const map = new Map<string, DOMRect>();
+    for (const li of sleeves()) map.set(li.dataset.id!, li.getBoundingClientRect());
+    prevRects.current = map;
+  };
+
+  const startDrag = (e: React.PointerEvent<HTMLUListElement>) => {
+    if (!editing || visiting || dragRef.current) return;
+    // Sólo el botón principal: el secundario abre el menú del navegador.
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-action]')) return;
+    const li = target.closest<HTMLLIElement>('li[data-id]');
+    if (!li) return;
+
+    const rect = li.getBoundingClientRect();
+    dragRef.current = {
+      id: li.dataset.id!,
+      el: li,
+      pointerId: e.pointerId,
+      grabX: e.clientX - rect.left,
+      grabY: e.clientY - rect.top,
+      baseLeft: rect.left,
+      baseTop: rect.top,
+      lastX: e.clientX,
+      lastY: e.clientY,
+      slots: sleeves().map((cell) => {
+        const r = cell.getBoundingClientRect();
+        return {
+          left: r.left + window.scrollX,
+          top: r.top + window.scrollY,
+          right: r.right + window.scrollX,
+          bottom: r.bottom + window.scrollY,
+        };
+      }),
+      active: false,
+      fromX: e.clientX,
+      fromY: e.clientY,
+    };
+  };
+
+  const onDragMove = (e: React.PointerEvent<HTMLUListElement>) => {
+    const drag = dragRef.current;
+    if (!drag || e.pointerId !== drag.pointerId) return;
+
+    if (!drag.active) {
+      if (Math.hypot(e.clientX - drag.fromX, e.clientY - drag.fromY) < THRESHOLD) return;
+      // Recién ahora se captura: hacerlo en el pointerdown le roba el click a
+      // cualquier botón de adentro, aunque el usuario nunca haya arrastrado.
+      drag.active = true;
+      drag.el.setPointerCapture(drag.pointerId);
+      drag.el.classList.add(styles.lifted!);
+    }
+
+    drag.lastX = e.clientX;
+    drag.lastY = e.clientY;
+    gsap.set(drag.el, {
+      x: e.clientX - drag.grabX - drag.baseLeft,
+      y: e.clientY - drag.grabY - drag.baseTop,
+    });
+
+    // Qué casilla pisa el puntero. Contra las casillas fijas y no contra las
+    // fundas: mientras el FLIP corre, sus rects están a mitad de camino y el
+    // objetivo oscilaba entre dos posiciones.
+    const px = e.clientX + window.scrollX;
+    const py = e.clientY + window.scrollY;
+    const over = drag.slots.findIndex(
+      (s) => px >= s.left && px <= s.right && py >= s.top && py <= s.bottom,
+    );
+    if (over < 0 || over === ids.indexOf(drag.id)) return;
+
+    snapshot();
+    onReorder(moved(drag.id, over));
+  };
+
+  const endDrag = (e: React.PointerEvent<HTMLUListElement>) => {
+    const drag = dragRef.current;
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    dragRef.current = null;
+    if (!drag.active) return;
+
+    drag.el.classList.remove(styles.lifted!);
+    try {
+      drag.el.releasePointerCapture(drag.pointerId);
+    } catch {
+      /* el puntero ya se fue */
+    }
+    if (reduced()) gsap.set(drag.el, { x: 0, y: 0 });
+    else gsap.to(drag.el, { x: 0, y: 0, duration: 0.3, ease: 'power3.out' });
+  };
+
+  /**
+   * Después de cada reordenamiento las fundas ya están en su lugar nuevo: se las
+   * devuelve al viejo con un transform y se las suelta. La que se arrastra no
+   * entra en el FLIP, pero sí hay que re-anclarla: su posición de layout cambió
+   * y el transform que la pega al puntero se mide contra esa posición.
+   */
+  useLayoutEffect(() => {
+    const prev = prevRects.current;
+    if (!prev) return;
+    prevRects.current = null;
+
+    const drag = dragRef.current;
+    const soft = !reduced();
+
+    for (const li of sleeves()) {
+      const before = prev.get(li.dataset.id!);
+      if (!before) continue;
+
+      if (drag?.active && li === drag.el) {
+        const x = Number(gsap.getProperty(li, 'x')) || 0;
+        const y = Number(gsap.getProperty(li, 'y')) || 0;
+        const now = li.getBoundingClientRect();
+        drag.baseLeft = now.left - x;
+        drag.baseTop = now.top - y;
+        gsap.set(li, {
+          x: drag.lastX - drag.grabX - drag.baseLeft,
+          y: drag.lastY - drag.grabY - drag.baseTop,
+        });
+        continue;
+      }
+
+      const now = li.getBoundingClientRect();
+      const dx = before.left - now.left;
+      const dy = before.top - now.top;
+      if (!dx && !dy) continue;
+      if (soft) gsap.fromTo(li, { x: dx, y: dy }, { x: 0, y: 0, duration: 0.3, ease: 'power3.out' });
+      else gsap.set(li, { x: 0, y: 0 });
+    }
+  }, [records]);
 
   /**
    * Flechas para moverse por la estantería, como quien pasa discos con la mano.
    * Las columnas se leen de la grilla ya resuelta en vez de duplicar los
    * breakpoints acá: una sola fuente de verdad, y sigue siendo el CSS.
    */
-  const onGridKey = useCallback((e: React.KeyboardEvent<HTMLUListElement>) => {
+  const onGridKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
     const grid = gridRef.current;
     if (!grid) return;
+
+    // Con Alt, las flechas mueven el disco en vez de mover el foco: es el camino
+    // de teclado para lo mismo que hace el arrastre, que con teclado no existe.
+    if (editing && !visiting && e.altKey && e.key.startsWith('Arrow')) {
+      const li = (e.target as HTMLElement).closest<HTMLLIElement>('li[data-id]');
+      if (!li) return;
+      const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+      const jump =
+        e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowDown' ? cols : -cols;
+      const id = li.dataset.id!;
+      const to = ids.indexOf(id) + jump;
+      if (to < 0 || to >= ids.length) return;
+      e.preventDefault();
+      snapshot();
+      onReorder(moved(id, to));
+      setAnnounce(`Moved to position ${to + 1} of ${ids.length}`);
+      return;
+    }
 
     const steps: Record<string, number | 'first' | 'last'> = {
       ArrowRight: 1,
@@ -76,7 +280,7 @@ export default function Gallery({
     if (!target || target === cells[current]) return;
     e.preventDefault();
     target.focus();
-  }, []);
+  };
 
   // La estantería aparece sin animación: ya está ahí cuando entrás.
   // Lo único que se anima es un disco recién agregado.
@@ -101,7 +305,7 @@ export default function Gallery({
     <div className={`${styles.gallery}`}>
       <header className={styles.nav}>
         {/* El logo dibuja la marca pero no la dice: el h1 necesita texto. */}
-        <a className={styles.name} href="/" aria-label="deadwax">
+        <a className={styles.name} href="/" aria-label="deadwax" onClick={softHome(onHome)}>
           <span className="visually-hidden">deadwax</span>
           <svg
             aria-hidden="true"
@@ -127,22 +331,51 @@ export default function Gallery({
             About
           </button>
           {visiting ? (
-            <a className={styles.link} href="/">
+            <a className={styles.link} href="/" onClick={softHome(onHome)}>
               Open your own shelf
             </a>
           ) : (
             <>
-              <button
-                type="button"
-                className={`${styles.link} ${editing ? styles.linkOn : ''}`}
-                onClick={onToggleEdit}
-                aria-pressed={editing}
-              >
-                {editing ? 'Done' : 'Edit shelf'}
-              </button>
-              <button type="button" className={styles.link} onClick={onOpenAdd}>
-                Add a record
-              </button>
+              {/* Sin discos no hay nada que ordenar ni que sacar. */}
+              {records.length > 0 && (
+                <button
+                  type="button"
+                  className={`${styles.link} ${editing ? styles.linkOn : ''}`}
+                  onClick={() => {
+                    setConfirmWipe(false);
+                    onToggleEdit();
+                  }}
+                  aria-pressed={editing}
+                >
+                  {editing ? 'Done' : 'Edit shelf'}
+                </button>
+              )}
+              {/* Editar y agregar son dos modos distintos: mientras se ordena y
+                  se saca, la puerta de entrada estorba. */}
+              {editing ? (
+                records.length > 0 && (
+                  // Vaciar la estantería no se deshace, así que el primer click
+                  // sólo pregunta. Un confirm() nativo rompería el tono del sitio.
+                  <button
+                    type="button"
+                    className={`${styles.link} ${confirmWipe ? styles.linkOn : ''}`}
+                    onClick={() => {
+                      if (!confirmWipe) {
+                        setConfirmWipe(true);
+                        return;
+                      }
+                      setConfirmWipe(false);
+                      onRemoveAll();
+                    }}
+                  >
+                    {confirmWipe ? 'Remove all, really?' : 'Remove all'}
+                  </button>
+                )
+              ) : (
+                <button type="button" className={styles.link} onClick={onOpenAdd}>
+                  Add a record
+                </button>
+              )}
               <button type="button" className={styles.link} onClick={onOpenShare}>
                 Share library
               </button>
@@ -166,8 +399,17 @@ export default function Gallery({
         </div>
       )}
 
+
       <div className={styles.shelf}>
-        <ul ref={gridRef} className={styles.grid} onKeyDown={onGridKey}>
+        <ul
+          ref={gridRef}
+          className={styles.grid}
+          onKeyDown={onGridKey}
+          onPointerDown={startDrag}
+          onPointerMove={onDragMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
           {records.map((record, i) => (
             <Sleeve
               key={record.id}
@@ -178,9 +420,26 @@ export default function Gallery({
               onDelete={onDelete}
             />
           ))}
-          {!visiting && <AddSlot onOpen={onOpenAdd} />}
+          {!visiting && !editing && <AddSlot onOpen={onOpenAdd} />}
         </ul>
       </div>
+
+      {/*
+        Siempre en el DOM y sólo oculto: si apareciera al entrar en edición, se
+        comería alto del contenedor de la estantería y la grilla, que está
+        centrada, daría un salto. Reservado, el modo se enciende sin mover nada.
+      */}
+      <p
+        className={`${styles.hint} ${showHint ? '' : styles.hintOff}`}
+        aria-hidden={showHint ? undefined : true}
+      >
+        Drag a sleeve to move it, or hold Alt and use the arrow keys.
+      </p>
+
+      {/* Lo que el arrastre muestra sin decir, el teclado tiene que decirlo. */}
+      <span className="visually-hidden" role="status" aria-live="polite">
+        {announce}
+      </span>
     </div>
   );
 }

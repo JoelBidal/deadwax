@@ -91,6 +91,17 @@
   color: var(--ink-500);
 }
 
+/* Ocupa el lugar de la URL mientras no hay nombre, así la fila no salta de alto
+   cuando aparece el enlace. */
+.waiting {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--t--1);
+  color: var(--ink-700);
+}
+
 .copy {
   flex: none;
   font-size: var(--t--1);
@@ -102,8 +113,14 @@
   transition: color var(--dur-hover) var(--ease-sleeve);
 }
 
-.copy:hover,
+.copy:hover:not(:disabled),
 .copy:focus-visible {
   color: var(--bone);
   text-decoration-color: currentColor;
+}
+
+.copy:disabled {
+  color: var(--ink-700);
+  text-decoration-color: transparent;
+  cursor: default;
 }

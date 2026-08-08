@@ -142,8 +142,15 @@
   transform: translateY(0);
 }
 
+/* `touch-action: none` o el navegador se queda con el gesto y scrollea la
+   página en vez de dejar arrastrar la funda. */
+.editing {
+  touch-action: none;
+  cursor: grab;
+}
+
 .editing .button {
-  cursor: default;
+  cursor: inherit;
 }
 
 .editing .cover {

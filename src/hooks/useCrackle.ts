@@ -1,7 +1,13 @@
 import { useEffect, useRef, type RefObject } from 'react';
+import type { CrackleLevel } from '../lib/types';
 
 const SECONDS = 4;
-const GAIN = 0.06;
+
+/**
+ * `high` no llega al doble: por encima de eso el ruido deja de leerse como
+ * superficie del disco y empieza a competir con la música.
+ */
+const GAIN: Record<CrackleLevel, number> = { off: 0, normal: 0.06, high: 0.105 };
 
 /**
  * Ruido de superficie generado, no sampleado: hiss de fondo constante más pops
@@ -32,9 +38,14 @@ function buildCrackle(ctx: AudioContext): AudioBuffer {
   return buffer;
 }
 
-export function useCrackle(ctxRef: RefObject<AudioContext | null>, active: boolean) {
+export function useCrackle(
+  ctxRef: RefObject<AudioContext | null>,
+  level: CrackleLevel,
+  playing: boolean,
+) {
   const nodesRef = useRef<{ source: AudioBufferSourceNode; gain: GainNode } | null>(null);
   const bufferRef = useRef<AudioBuffer | null>(null);
+  const active = level !== 'off' && playing;
 
   useEffect(() => {
     const ctx = ctxRef.current;
@@ -57,7 +68,12 @@ export function useCrackle(ctxRef: RefObject<AudioContext | null>, active: boole
       return;
     }
 
-    if (nodesRef.current) return;
+    // Ya sonando: cambiar de intensidad mueve el gain, no rearma el grafo. Cortar
+    // y volver a arrancar reiniciaría el loop y se oiría el salto.
+    if (nodesRef.current) {
+      nodesRef.current.gain.gain.setTargetAtTime(GAIN[level], ctx.currentTime, 0.15);
+      return;
+    }
 
     bufferRef.current ??= buildCrackle(ctx);
 
@@ -75,12 +91,12 @@ export function useCrackle(ctxRef: RefObject<AudioContext | null>, active: boole
 
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    gain.gain.setTargetAtTime(GAIN, ctx.currentTime, 0.4);
+    gain.gain.setTargetAtTime(GAIN[level], ctx.currentTime, 0.4);
 
     source.connect(highpass).connect(lowpass).connect(gain).connect(ctx.destination);
     source.start();
     nodesRef.current = { source, gain };
-  }, [ctxRef, active]);
+  }, [ctxRef, active, level]);
 
   useEffect(
     () => () => {

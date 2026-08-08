@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import gsap from 'gsap';
-import type { AlbumDetail, LibraryRecord, Seed } from '../lib/types';
+import type { AlbumDetail, CrackleLevel, LibraryRecord, Seed } from '../lib/types';
 import { fetchAlbum, fetchAlbums } from '../lib/client';
 import { extractAccent } from '../lib/accent';
 import { decodeShelf } from '../lib/shelf';
 import { SITE_TITLE } from '../lib/meta';
 import {
+  loadCrackle,
   loadHiddenIds,
+  loadOrder,
   loadShelfName,
   loadUserRecords,
+  loadVolume,
+  saveCrackle,
   saveHiddenIds,
+  saveOrder,
   saveShelfName,
   saveUserRecords,
+  saveVolume,
 } from '../lib/storage';
 import { useAudioEngine } from '../hooks/useAudioEngine';
 import { useCrackle } from '../hooks/useCrackle';
@@ -95,11 +101,14 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
   const [editing, setEditing] = useState(false);
   const [visited, setVisited] = useState<{ name: string; records: LibraryRecord[] } | null>(null);
   const [shelfName, setShelfName] = useState('');
+  const [order, setOrder] = useState<string[]>([]);
   const [theme, toggleTheme] = useTheme();
-  const [crackle, setCrackle] = useState(true);
-  const { audioRef, ctxRef, ensureContext, play, pause, load } = useAudioEngine();
+  const [crackle, setCrackle] = useState<CrackleLevel>('normal');
+  const [volume, setVolume] = useState(1);
+  const { audioRef, ctxRef, ensureContext, play, pause, load, setVolume: applyVolume } =
+    useAudioEngine();
 
-  useCrackle(ctxRef, crackle && state.playing);
+  useCrackle(ctxRef, crackle, state.playing);
 
   const galleryRef = useRef<HTMLDivElement>(null);
   const originRef = useRef<DOMRect | null>(null);
@@ -113,15 +122,28 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
     setUserRecords(loadUserRecords());
     setHidden(loadHiddenIds());
     setShelfName(loadShelfName());
-  }, []);
+    setOrder(loadOrder());
+    const stored = loadVolume();
+    setVolume(stored);
+    applyVolume(stored);
+    setCrackle(loadCrackle());
+  }, [applyVolume]);
 
   const own = useMemo<LibraryRecord[]>(() => {
     const gone = new Set(hidden);
-    return [
+    const all = [
       ...seed.filter((r) => !gone.has(r.id)).map((r) => ({ ...r, source: 'seed' as const })),
       ...userRecords,
     ];
-  }, [seed, userRecords, hidden]);
+    if (!order.length) return all;
+    // Lo que no está en el orden guardado queda al final, en el orden en que
+    // vino: un disco recién agregado aparece último, no en un lugar al azar.
+    const place = new Map(order.map((id, i) => [id, i]));
+    return all
+      .map((record, i) => ({ record, at: place.get(record.id) ?? order.length + i }))
+      .sort((a, b) => a.at - b.at)
+      .map((entry) => entry.record);
+  }, [seed, userRecords, hidden, order]);
 
   // Mirando una estantería compartida, la propia queda intacta detrás.
   const library = visited?.records ?? own;
@@ -174,6 +196,29 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
     dispatch({ type: 'stop' });
   }, [pause]);
 
+  /**
+   * Volver a la estantería propia sin recargar: cierra lo que haya abierto y
+   * suelta la estantería ajena. El disco no se detiene, sólo se minimiza; una
+   * navegación de verdad cortaría la música, que es lo que se quiere evitar.
+   */
+  const handleHome = useCallback(() => {
+    setAdding(false);
+    setAbout(false);
+    setSharing(false);
+    setEditing(false);
+    setVisited(null);
+    if (state.album && (state.playing || state.time > 0)) dispatch({ type: 'minimize' });
+    else {
+      wantsPlay.current = false;
+      pause();
+      dispatch({ type: 'stop' });
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete('shelf');
+    url.searchParams.delete('record');
+    window.history.replaceState(null, '', url);
+  }, [state.album, state.playing, state.time, pause]);
+
   const handleExpand = useCallback((rect: DOMRect, from: HTMLElement) => {
     originRef.current = rect;
     returnFocus.current = from;
@@ -214,6 +259,48 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
       });
     },
     [userRecords],
+  );
+
+  const handleReorder = useCallback((ids: string[]) => {
+    setOrder(ids);
+    saveOrder(ids);
+  }, []);
+
+  /** Vaciar la estantería: los del usuario se borran, las semillas se esconden. */
+  const handleRemoveAll = useCallback(() => {
+    setUserRecords(() => {
+      saveUserRecords([]);
+      return [];
+    });
+    const all = seed.map((r) => r.id);
+    setHidden(() => {
+      saveHiddenIds(all);
+      return all;
+    });
+    setOrder(() => {
+      saveOrder([]);
+      return [];
+    });
+    // Sin discos no hay nada que editar, y el modo edición esconde justo la
+    // única salida que queda: agregar uno.
+    setEditing(false);
+  }, [seed]);
+
+  const handleCrackle = useCallback(() => {
+    setCrackle((level) => {
+      const next: CrackleLevel = level === 'off' ? 'normal' : level === 'normal' ? 'high' : 'off';
+      saveCrackle(next);
+      return next;
+    });
+  }, []);
+
+  const handleVolume = useCallback(
+    (value: number) => {
+      setVolume(value);
+      applyVolume(value);
+      saveVolume(value);
+    },
+    [applyVolume],
   );
 
   const handleAdd = useCallback(async (album: PickableAlbum) => {
@@ -405,8 +492,9 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
         latest.current.handleClose();
         return;
       }
-      // Que las teclas no le roben la activación a un botón enfocado.
-      if (e.target instanceof HTMLElement && e.target.closest('button')) return;
+      // Que las teclas no le roben la activación a un control enfocado. El
+      // input incluido: sobre el volumen, las flechas son suyas, no del disco.
+      if (e.target instanceof HTMLElement && e.target.closest('button, input')) return;
 
       if (e.key === ' ') {
         e.preventDefault();
@@ -450,6 +538,9 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
           onToggleEdit={() => setEditing((v) => !v)}
           onToggleTheme={toggleTheme}
           onDelete={handleDelete}
+          onReorder={handleReorder}
+          onRemoveAll={handleRemoveAll}
+          onHome={handleHome}
         />
       </div>
 
@@ -461,7 +552,7 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
         />
       )}
 
-      {about && <About onClose={() => setAbout(false)} />}
+      {about && <About onClose={() => setAbout(false)} onHome={handleHome} />}
 
       {sharing && (
         <SharePanel
@@ -486,12 +577,15 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
           time={state.time}
           duration={state.duration}
           crackle={crackle}
+          volume={volume}
           originRect={originRef.current}
           onToggle={handleToggle}
           onPrev={() => step(-1)}
           onNext={() => step(1)}
           onPick={pick}
-          onCrackle={() => setCrackle((v) => !v)}
+          onCrackle={handleCrackle}
+          onVolume={handleVolume}
+          onHome={handleHome}
           onClose={handleClose}
         />
       )}
@@ -507,9 +601,11 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
           playing={state.playing}
           time={state.time}
           duration={state.duration}
+          volume={volume}
           onToggle={handleToggle}
           onPrev={() => step(-1)}
           onNext={() => step(1)}
+          onVolume={handleVolume}
           onExpand={handleExpand}
           onStop={handleStop}
         />

@@ -69,12 +69,15 @@
   color: var(--ink-500);
 }
 
-/* Separado de la lista por una hairline: es una salida del sitio, no un track. */
+/* Separado de la lista por una hairline: es una salida del sitio, no un track.
+   La aclaración a la izquierda y la salida a la derecha, en el mismo renglón;
+   si no entran, el enlace baja en vez de recortarse. */
 .foot {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--s-2);
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
   padding-top: var(--s-4);
   box-shadow: inset 0 1px 0 var(--line);
 }

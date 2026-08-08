@@ -1,7 +1,15 @@
 import { useEffect } from 'react';
+import { softHome } from '../lib/nav';
+import { Mark } from './Logo';
 import styles from './About.module.css';
 
-export default function About({ onClose }: { onClose: () => void }) {
+export default function About({
+  onClose,
+  onHome,
+}: {
+  onClose: () => void;
+  onHome: () => void;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -14,20 +22,10 @@ export default function About({ onClose }: { onClose: () => void }) {
     <div className={styles.stage} role="dialog" aria-modal="true" aria-label="About deadwax">
       <div className={styles.panel}>
         <div className={styles.head}>
-          <span className={styles.name}>
+          <a className={styles.name} href="/" onClick={softHome(onHome)}>
             <span className="visually-hidden">deadwax</span>
-            <svg
-              aria-hidden="true"
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M20 20H0V0H20V20ZM10.0015 2.30769C5.75319 2.30769 2.30919 5.75169 2.30919 10C2.30919 14.2483 5.75319 17.6923 10.0015 17.6923C14.2498 17.6923 17.6938 14.2483 17.6938 10C17.6938 5.75169 14.2498 2.30769 10.0015 2.30769Z" fill="currentColor"/>
-              <path d="M10.7707 10C10.7707 10.4248 10.4263 10.7692 10.0015 10.7692C9.57667 10.7692 9.23227 10.4248 9.23227 10C9.23227 9.57517 9.57667 9.23077 10.0015 9.23077C10.4263 9.23077 10.7707 9.57517 10.7707 10Z" fill="currentColor"/>
-            </svg>
-          </span>
+            <Mark />
+          </a>
           <button type="button" className={styles.close} onClick={onClose}>
             Close
           </button>
@@ -65,7 +63,7 @@ export default function About({ onClose }: { onClose: () => void }) {
           </p>
           <p className={styles.row}>
             <span className={styles.key}>Built with</span>
-            <span>Astro, React, TypeScript, GSAP, Web Audio, plain CSS</span>
+            <span>Astro, React, TypeScript, GSAP, Web Audio, CSS and Claude Code</span>
           </p>
           <p className={styles.row}>
             <span className={styles.key}>Your shelf</span>
@@ -74,6 +72,20 @@ export default function About({ onClose }: { onClose: () => void }) {
           <p className={styles.row}>
             <span className={styles.key}>Keys</span>
             <span>Space to play or pause, Escape to go back</span>
+          </p>
+          <p className={styles.row}>
+            <span className={styles.key}>Made by</span>
+            <span>
+              Joel Bidal, web developer and music lover. {' '}
+              <a
+                className={styles.out}
+                href="https://x.com/JoelBidal5"
+                target="_blank"
+                rel="noreferrer"
+              >
+                @joelbidal5
+              </a>
+            </span>
           </p>
         </div>
       </div>

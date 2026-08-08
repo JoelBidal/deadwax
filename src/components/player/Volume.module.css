@@ -1,0 +1,105 @@
+/* La caja es más alta que la línea: el área de agarre no puede medir 2px. */
+.wrap {
+  display: flex;
+  align-items: center;
+  height: 16px;
+}
+
+.range {
+  appearance: none;
+  width: 74px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.range:focus {
+  outline: none;
+}
+
+/*
+ * La pista se dibuja en el track y no en el input, para que quede centrada en
+ * la caja alta sin calcular márgenes. El relleno es un gradiente de dos paradas
+ * duras: un degradé de verdad haría ver el borde blando y esto es una hairline.
+ */
+.range::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--ink-300) 0 var(--fill),
+    color-mix(in oklab, var(--ink-500) 45%, transparent) var(--fill) 100%
+  );
+}
+
+.range::-moz-range-track {
+  height: 2px;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--ink-500) 45%, transparent);
+}
+
+.range::-moz-range-progress {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink-300);
+}
+
+/* El pulgar sólo aparece cuando lo vas a usar: en reposo la línea alcanza. */
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  margin-top: -3px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bone);
+  opacity: 0;
+  transition: opacity var(--dur-hover) var(--ease-sleeve);
+}
+
+.range::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bone);
+  opacity: 0;
+  transition: opacity var(--dur-hover) var(--ease-sleeve);
+}
+
+.range:hover::-webkit-slider-thumb,
+.range:focus-visible::-webkit-slider-thumb,
+.range:active::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+.range:hover::-moz-range-thumb,
+.range:focus-visible::-moz-range-thumb,
+.range:active::-moz-range-thumb {
+  opacity: 1;
+}
+
+.range:hover::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    90deg,
+    var(--bone) 0 var(--fill),
+    color-mix(in oklab, var(--ink-500) 60%, transparent) var(--fill) 100%
+  );
+}
+
+.range:hover::-moz-range-progress {
+  background: var(--bone);
+}
+
+/* Sin outline propio el foco de teclado no se ve en ningún lado. */
+.range:focus-visible::-webkit-slider-runnable-track {
+  outline: 1px solid var(--ink-500);
+  outline-offset: 4px;
+}
+
+.range:focus-visible::-moz-range-track {
+  outline: 1px solid var(--ink-500);
+  outline-offset: 4px;
+}

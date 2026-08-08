@@ -14,6 +14,8 @@ export function useAudioEngine() {
   const ctxRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  /** El volumen elegido sobrevive a que todavía no exista el contexto. */
+  const volumeRef = useRef(1);
 
   /** Llamar dentro del handler del gesto del usuario, nunca después de un await. */
   const ensureContext = useCallback(() => {
@@ -24,6 +26,7 @@ export function useAudioEngine() {
       if (!Ctor) return null;
       ctxRef.current = new Ctor();
       gainRef.current = ctxRef.current.createGain();
+      gainRef.current.gain.value = volumeRef.current;
       gainRef.current.connect(ctxRef.current.destination);
     }
 
@@ -60,5 +63,17 @@ export function useAudioEngine() {
     audio.load();
   }, []);
 
-  return { audioRef, ctxRef, gainRef, ensureContext, play, pause, load };
+  /**
+   * Rampa corta en vez de asignación directa: mover un gain de golpe mientras
+   * suena algo produce un click. Arrastrar el control dispara decenas de
+   * llamadas por segundo, y cada salto se escucharía.
+   */
+  const setVolume = useCallback((value: number) => {
+    volumeRef.current = value;
+    const gain = gainRef.current;
+    const ctx = ctxRef.current;
+    if (gain && ctx) gain.gain.setTargetAtTime(value, ctx.currentTime, 0.015);
+  }, []);
+
+  return { audioRef, ctxRef, gainRef, ensureContext, play, pause, load, setVolume };
 }

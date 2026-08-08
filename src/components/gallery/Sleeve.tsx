@@ -28,6 +28,9 @@ export default function Sleeve({ record, index, editing, onSelect, onDelete }: P
 
   return (
     <li
+      // Lo lee el arrastre por delegación desde la grilla, para no colgarle un
+      // handler de puntero a cada funda.
+      data-id={record.id}
       className={`${styles.cell} ${editing ? styles.editing : ''}`}
       style={{ '--accent': record.accent } as React.CSSProperties}
     >
@@ -66,6 +69,9 @@ export default function Sleeve({ record, index, editing, onSelect, onDelete }: P
           <button
             type="button"
             className={styles.action}
+            // El arrastre no arranca desde acá: capturar el puntero le robaba
+            // el click al botón y Remove dejaba de responder.
+            data-action=""
             onClick={() => onDelete(record.id)}
             aria-label={`Remove ${record.title}`}
           >
@@ -75,6 +81,9 @@ export default function Sleeve({ record, index, editing, onSelect, onDelete }: P
           <button
             type="button"
             className={styles.action}
+            // El arrastre no arranca desde acá: capturar el puntero le robaba
+            // el click al botón y Remove dejaba de responder.
+            data-action=""
             onClick={share}
             aria-label={`Copy link to ${record.title}`}
           >

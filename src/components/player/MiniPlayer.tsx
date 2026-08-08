@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import type { LibraryRecord, Track } from '../../lib/types';
 import { mmss } from '../../lib/format';
+import Volume from './Volume';
 import styles from './MiniPlayer.module.css';
 
 type Props = {
@@ -12,9 +13,11 @@ type Props = {
   playing: boolean;
   time: number;
   duration: number;
+  volume: number;
   onToggle: () => void;
   onPrev: () => void;
   onNext: () => void;
+  onVolume: (value: number) => void;
   onExpand: (rect: DOMRect, from: HTMLElement) => void;
   onStop: () => void;
 };
@@ -27,9 +30,11 @@ export default function MiniPlayer({
   playing,
   time,
   duration,
+  volume,
   onToggle,
   onPrev,
   onNext,
+  onVolume,
   onExpand,
   onStop,
 }: Props) {
@@ -99,14 +104,19 @@ export default function MiniPlayer({
         </span>
       </span>
 
-      <button
-        type="button"
-        className={`${styles.action} ${styles.stop}`}
-        onClick={onStop}
-        aria-label="Stop and put the record away"
-      >
-        Close
-      </button>
+      <span className={styles.right}>
+        <span className={styles.volume}>
+          <Volume value={volume} onChange={onVolume} />
+        </span>
+        <button
+          type="button"
+          className={styles.action}
+          onClick={onStop}
+          aria-label="Stop and put the record away"
+        >
+          Close
+        </button>
+      </span>
     </div>
   );
 }

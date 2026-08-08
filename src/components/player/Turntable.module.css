@@ -72,8 +72,10 @@
 
 .meters {
   display: flex;
-  gap: var(--s-5);
+  gap: var(--s-4);
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
   font-size: var(--t--1);
 }
 
@@ -132,11 +134,22 @@
     visibility var(--dur-hover);
 }
 
+/* Hover, y foco sólo de teclado. Con `:focus-within` el tooltip se quedaba
+   pegado después de hacer click, porque el botón conserva el foco. */
 .crackleWrap:hover .tip,
-.crackleWrap:focus-within .tip {
+.crackle:focus-visible ~ .tip {
   opacity: 1;
   visibility: visible;
   translate: -50% 0;
+}
+
+/* Dos puntos y no uno: el control tiene tres estados y hacen falta dos casillas
+   para distinguirlos sin texto. Apagado, normal, lleno. */
+.dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  margin-top: -1px;
 }
 
 /* `currentColor` en vez de un token: el punto toma el color del texto que tiene
@@ -144,7 +157,6 @@
 .dot {
   width: 5px;
   height: 5px;
-  margin-top: -1px;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px currentColor;
   transition: background var(--dur-hover) var(--ease-sleeve);
@@ -195,13 +207,27 @@
 .topBar {
   display: flex;
   gap: var(--s-5);
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex: none;
   width: var(--container);
   margin-inline: auto;
   font-size: var(--t--1);
   letter-spacing: -0.005em;
+}
+
+/* `flex` y no `inline`: un svg inline se apoya en la línea de base y deja un
+   par de píxeles de aire abajo que descuadran la fila. Sin estado de hover: es
+   la marca, no un control, y no tiene por qué reaccionar. */
+.mark {
+  display: flex;
+  color: var(--bone);
+}
+
+.topActions {
+  display: flex;
+  gap: var(--s-5);
+  align-items: baseline;
 }
 
 .link {

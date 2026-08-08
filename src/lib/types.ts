@@ -28,6 +28,9 @@ export type LibraryRecord = Seed & {
   source: 'seed' | 'user';
 };
 
+/** Cuánto polvo tiene la púa. `off` no arma el grafo de audio siquiera. */
+export type CrackleLevel = 'off' | 'normal' | 'high';
+
 export type AlbumSummary = {
   id: string;
   title: string;
