@@ -1,4 +1,5 @@
 ---
+import Analytics from '@vercel/analytics/astro';
 import '../styles/global.css';
 
 interface Props {
@@ -66,5 +67,9 @@ const ogImage = image ? new URL(image, Astro.site ?? Astro.url.origin).href : un
   </head>
   <body>
     <slot />
+    {/* Se inyecta siempre, pero sólo registra donde el proyecto tiene Web
+        Analytics activo: en local apunta al script de debug y no reporta nada.
+        Al final del body para que no compita con el primer pintado. */}
+    <Analytics />
   </body>
 </html>
