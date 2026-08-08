@@ -160,6 +160,13 @@
   .time {
     display: none;
   }
+  .bar {
+    display: flex;
+  }
+  .controls {
+    flex-grow: 1;
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 520px) {
