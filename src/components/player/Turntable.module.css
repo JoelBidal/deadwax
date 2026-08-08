@@ -24,7 +24,6 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 1fr);
   gap: clamp(32px, 6vw, 88px);
-  align-items: center;
   flex: 1;
   width: var(--container);
   margin-inline: auto;
@@ -39,6 +38,7 @@
  * corrido aunque técnicamente esté centrado.
  */
 .deckSide {
+  padding-top: 4vh;
   display: flex;
   flex-direction: column;
   gap: clamp(20px, 3.5vh, 40px);

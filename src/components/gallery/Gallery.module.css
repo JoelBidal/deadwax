@@ -136,9 +136,14 @@
     gap: var(--s-4);
   }
 
+  .name{
+    justify-content: center;
+  }
+  
   .links {
     flex-wrap: wrap;
-    gap: var(--s-2) var(--s-4);
+    gap: var(--s-2);
+    justify-content: space-between;
   }
 
   /* Sin fila que separar, la regla vertical sobra. */
