@@ -43,7 +43,10 @@ const canonical = new URL(Astro.url.pathname + Astro.url.search, Astro.site ?? A
     {image && <meta property="og:image" content={image} />}
     {image && <meta name="twitter:image" content={image} />}
 
-    <link rel="icon" href="../../src/public/favicon.svg" type="image/svg+xml" />
+    {/* Ruta absoluta desde la raíz servida: lo que está en public/ se publica en
+        la raíz del sitio. Una ruta relativa al archivo fuente no existe en el
+        build y el navegador la pide contra el dominio, donde no hay nada. */}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
