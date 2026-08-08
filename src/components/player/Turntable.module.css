@@ -13,6 +13,15 @@
   padding: var(--pad-top) clamp(16px, 4vw, 48px) clamp(32px, 6vh, 72px);
   background: var(--ink-900);
   overflow-y: auto;
+  /*
+   * El disco es un div cuadrado con fondo circular: al girar, su caja de layout
+   * crece hasta √2 aunque el círculo que se ve no se mueva. Esa caja fantasma
+   * asomaba unos píxeles y, como `overflow-y: auto` vuelve el stage contenedor
+   * de scroll también en x, aparecía un scroll horizontal que latía con el giro.
+   * No se pierde nada alcanzable: ahí afuera no hay contenido, sólo la caja.
+   * (`clip` no sirve acá: con el otro eje scrolleando, degrada a `hidden`.)
+   */
+  overflow-x: hidden;
 }
 
 /* La escena recibe el foco al abrirse, pero no es un control: no se dibuja. */
@@ -262,6 +271,24 @@
 
   .titles {
     align-items: center;
+  }
+
+  /*
+   * Anclado a la derecha en vez de centrado sobre el control. El control es el
+   * último de su fila, así que un tooltip centrado sobre él se pasaba del borde
+   * de la pantalla. Y como el `.stage` scrollea, eso abría scroll horizontal
+   * incluso con el tooltip oculto: `visibility: hidden` sigue ocupando lugar.
+   */
+  .tip {
+    left: auto;
+    right: 0;
+    max-width: min(210px, 72vw);
+    translate: 0 -4px;
+  }
+
+  .crackleWrap:hover .tip,
+  .crackle:focus-visible ~ .tip {
+    translate: 0 0;
   }
 }
 @media (max-width: 760px) {

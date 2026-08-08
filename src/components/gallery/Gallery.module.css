@@ -185,6 +185,6 @@
   .gallery {
     --cols: 2;
     --gap-x: 20px;
-    --gap-y: 52px;
+    --gap-y: 64px;
   }
 }
