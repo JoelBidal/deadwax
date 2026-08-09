@@ -307,6 +307,7 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
     }
     const url = new URL(window.location.href);
     url.searchParams.delete('shelf');
+    url.searchParams.delete('name');
     url.searchParams.delete('record');
     window.history.replaceState(null, '', url);
   }, [state.album, state.playing, state.time, pause]);
@@ -488,7 +489,7 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
 
     const params = new URLSearchParams(window.location.search);
 
-    const shelf = decodeShelf(params.get('shelf') ?? '');
+    const shelf = decodeShelf(params);
     if (shelf) {
       void (async () => {
         const albums = await fetchAlbums(shelf.ids).catch(() => []);

@@ -32,7 +32,7 @@ export default function SharePanel({ ids, initialName, onSaveName, onClose }: Pr
   const missing = Math.max(MIN_RECORDS - ids.length, 0);
   const ready = named && missing === 0;
   const url = ready
-    ? `${location.origin}${location.pathname}?shelf=${encodeShelf({ name: shelfName, ids })}`
+    ? `${location.origin}${location.pathname}?${encodeShelf({ name: shelfName, ids })}`
     : '';
 
   const copy = async () => {

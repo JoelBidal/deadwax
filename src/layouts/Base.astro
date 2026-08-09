@@ -1,21 +1,22 @@
 ---
 import Analytics from '@vercel/analytics/astro';
+import { OG_IMAGE } from '../lib/meta';
 import '../styles/global.css';
 
 interface Props {
   title: string;
   description: string;
-  image?: string | undefined;
   album?: boolean | undefined;
 }
 
-const { title, description, image, album } = Astro.props;
-const canonical = new URL(Astro.url.pathname + Astro.url.search, Astro.site ?? Astro.url.origin);
+const { title, description, album } = Astro.props;
+const site = Astro.site ?? Astro.url.origin;
+const canonical = new URL(Astro.url.pathname + Astro.url.search, site);
 
-// og:image no admite rutas relativas: el crawler no resuelve contra la página,
-// pide el path tal cual y no encuentra nada. Las portadas de iTunes ya vienen
-// absolutas y `new URL` las deja intactas.
-const ogImage = image ? new URL(image, Astro.site ?? Astro.url.origin).href : undefined;
+// La imagen no es un prop: cualquier página que pudiera elegir la suya termina
+// eligiéndola distinta. og:image tampoco admite rutas relativas, el crawler pide
+// el path tal cual contra su propio dominio y no encuentra nada.
+const ogImage = new URL(OG_IMAGE, site).href;
 ---
 
 <!doctype html>
@@ -50,9 +51,9 @@ const ogImage = image ? new URL(image, Astro.site ?? Astro.url.origin).href : un
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical.href} />
-    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
-    {ogImage && <meta name="twitter:image" content={ogImage} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:image" content={ogImage} />
 
     {/* Ruta absoluta desde la raíz servida: lo que está en public/ se publica en
         la raíz del sitio. Una ruta relativa al archivo fuente no existe en el

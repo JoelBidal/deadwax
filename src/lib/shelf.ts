@@ -1,7 +1,11 @@
 /**
- * Una estantería compartida viaja entera en la URL: nombre más ids de iTunes,
- * en base64url. Sin base de datos y sin cuentas, el enlace es el dato. Nueve
- * discos entran en unos 160 caracteres, así que no hay riesgo de pasarse.
+ * Una estantería compartida viaja entera en la URL: el nombre legible y los ids
+ * de iTunes en base36. Sin base de datos y sin cuentas, el enlace es el dato.
+ *
+ * Los ids son números de hasta diez dígitos y en base36 quedan en seis, así que
+ * nueve discos entran en unos 60 caracteres. El nombre va aparte y sin codificar
+ * para que el enlace se lea: quien lo recibe ve de qué estantería se trata antes
+ * de abrirla.
  */
 export type Shelf = { name: string; ids: string[] };
 
@@ -14,39 +18,40 @@ export const MAX_NAME = 60;
  */
 export const MIN_RECORDS = 3;
 
-const b64url = (s: string): string => {
-  const bytes = new TextEncoder().encode(s);
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-};
+const validId = (id: string) => /^\d+$/.test(id);
 
-const unb64url = (v: string): string => {
-  const bin = atob(v.replace(/-/g, '+').replace(/_/g, '/'));
-  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-};
-
+/** Los dos parámetros que llevan una estantería, listos para pegar tras el `?`. */
 export function encodeShelf(shelf: Shelf): string {
-  const payload = {
-    n: shelf.name.trim().slice(0, MAX_NAME),
-    r: shelf.ids.filter((id) => /^\d+$/.test(id)).slice(0, MAX_RECORDS),
-  };
-  return b64url(JSON.stringify(payload));
+  const params = new URLSearchParams();
+  // El nombre primero: es lo único de la URL que se lee de un vistazo.
+  const name = shelf.name.trim().slice(0, MAX_NAME);
+  if (name) params.set('name', name);
+  params.set(
+    'shelf',
+    shelf.ids
+      .filter(validId)
+      .slice(0, MAX_RECORDS)
+      .map((id) => Number(id).toString(36))
+      .join('.'),
+  );
+  return params.toString();
 }
 
-/** Todo lo que llega por acá es texto de un desconocido: se valida entero. */
-export function decodeShelf(value: string): Shelf | null {
-  if (!value || value.length > 4000) return null;
+/**
+ * Formato viejo: todo el objeto en base64url dentro de `?shelf=`. Se sigue
+ * leyendo porque hay enlaces sueltos por ahí y no cuesta nada; no se genera más.
+ * El JSON siempre arrancaba en `{"n`, que en base64 es `eyJu`.
+ */
+function decodeLegacy(value: string): Shelf | null {
   try {
-    const parsed: unknown = JSON.parse(unb64url(value));
+    const bin = atob(value.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
     if (typeof parsed !== 'object' || parsed === null) return null;
     const { n, r } = parsed as { n?: unknown; r?: unknown };
     if (!Array.isArray(r)) return null;
-
-    const ids = r.filter((id): id is string => typeof id === 'string' && /^\d+$/.test(id));
+    const ids = r.filter((id): id is string => typeof id === 'string' && validId(id));
     if (!ids.length) return null;
-
     return {
       name: (typeof n === 'string' ? n : '').trim().slice(0, MAX_NAME),
       ids: ids.slice(0, MAX_RECORDS),
@@ -54,4 +59,25 @@ export function decodeShelf(value: string): Shelf | null {
   } catch {
     return null;
   }
+}
+
+/** Todo lo que llega por acá es texto de un desconocido: se valida entero. */
+export function decodeShelf(params: URLSearchParams): Shelf | null {
+  const raw = params.get('shelf') ?? '';
+  if (!raw || raw.length > 4000) return null;
+  if (raw.startsWith('eyJ')) return decodeLegacy(raw);
+
+  const ids: string[] = [];
+  for (const token of raw.split('.')) {
+    if (!/^[0-9a-z]{1,11}$/.test(token)) return null;
+    const value = parseInt(token, 36);
+    if (!Number.isSafeInteger(value) || value <= 0) return null;
+    ids.push(String(value));
+  }
+  if (!ids.length) return null;
+
+  return {
+    name: (params.get('name') ?? '').trim().slice(0, MAX_NAME),
+    ids: ids.slice(0, MAX_RECORDS),
+  };
 }
