@@ -377,7 +377,7 @@ export default function Gallery({
                 </button>
               )}
               <button type="button" className={styles.link} onClick={onOpenShare}>
-                Share library
+                Share shelf
               </button>
             </>
           )}
