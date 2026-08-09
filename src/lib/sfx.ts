@@ -14,12 +14,12 @@
  * renderizando cada sonido en un OfflineAudioContext y mirando la onda.
  */
 const LEVEL = {
-  clickTick: 0.3,
-  clickBody: 0.22,
-  motor: 0.16,
-  servo: 0.1,
-  dropThud: 0.34,
-  dropTick: 0.16,
+  clickTick: 0.5,
+  clickBody: 0.42,
+  motor: 0.26,
+  servo: 0.2,
+  dropThud: 0.6,
+  dropTick: 0.26,
 } as const;
 
 /** Dos segundos de ruido blanco, reusados con desfases al azar. */

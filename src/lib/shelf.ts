@@ -7,6 +7,12 @@ export type Shelf = { name: string; ids: string[] };
 
 export const MAX_RECORDS = 60;
 export const MAX_NAME = 60;
+/**
+ * Se exige al armar el enlace, no al leerlo: un enlace viejo con menos discos
+ * tiene que seguir abriendo. Validar de nuevo acá sólo rompería links que ya
+ * andan sin impedir ninguno nuevo.
+ */
+export const MIN_RECORDS = 3;
 
 const b64url = (s: string): string => {
   const bytes = new TextEncoder().encode(s);

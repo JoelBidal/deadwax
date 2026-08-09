@@ -91,7 +91,18 @@ export function useCue(
     [cancel, ctxRef, destRef],
   );
 
+  /**
+   * Sólo el golpe de la púa, sin ritual: cuando el usuario apoya el brazo con
+   * la mano no hay botón que apretar ni motor que arrancar, ya está todo hecho.
+   */
+  const drop = useCallback(() => {
+    const ctx = ctxRef.current;
+    const dest = destRef.current;
+    if (!ctx || !dest) return;
+    needleDrop(ctx, dest, ctx.currentTime + 0.02);
+  }, [ctxRef, destRef]);
+
   useEffect(() => cancel, [cancel]);
 
-  return { start, cancel };
+  return { start, cancel, drop };
 }

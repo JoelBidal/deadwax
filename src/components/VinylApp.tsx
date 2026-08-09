@@ -42,9 +42,9 @@ type State = {
   /**
    * Dónde está la púa en este disco. `up` es un disco recién puesto que todavía
    * no sonó; el ritual de bajarla ocurre una sola vez por disco, y de ahí en
-   * más pasar de tema es instantáneo.
+   * más pasar de tema es instantáneo. `held` es el brazo en la mano del usuario.
    */
-  needle: 'up' | 'cueing' | 'down';
+  needle: 'up' | 'cueing' | 'down' | 'held';
   /** Entre la caída de la púa y la primera nota: sólo se escucha la superficie. */
   lead: boolean;
 };
@@ -59,6 +59,9 @@ type Action =
   | { type: 'cue' }
   | { type: 'drop' }
   | { type: 'groove' }
+  | { type: 'grab' }
+  | { type: 'place' }
+  | { type: 'park' }
   | { type: 'track'; index: number }
   | { type: 'playing'; value: boolean }
   | { type: 'time'; value: number }
@@ -99,6 +102,17 @@ function reducer(state: State, action: Action): State {
     // La púa dejó el surco de entrada: entra la canción.
     case 'groove':
       return { ...state, lead: false };
+    // Brazo en la mano: no hay surco de entrada que respetar, el usuario elige
+    // dónde apoya y ahí empieza.
+    case 'grab':
+      return { ...state, needle: 'held', lead: false };
+    case 'place':
+      return { ...state, needle: 'down', lead: false };
+    // De vuelta al apoyo. El tema vuelve al principio porque el brazo se fue del
+    // disco: dejar el minuto guardado haría que el próximo ritual baje la púa en
+    // el surco exterior y suene desde el medio.
+    case 'park':
+      return { ...state, needle: 'up', lead: false, time: 0 };
     case 'track':
       return { ...state, trackIndex: action.index, time: 0 };
     case 'playing':
@@ -325,6 +339,56 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
     },
     [state.needle, lowerNeedle],
   );
+
+  /**
+   * Levantar el brazo con la mano. Callar el audio no es un efecto: una púa
+   * fuera del surco no suena, y el silencio es lo que hace creíble el gesto.
+   */
+  const handleGrabArm = useCallback(() => {
+    ensureContext();
+    stopCue();
+    wantsPlay.current = false;
+    pause();
+    dispatch({ type: 'grab' });
+  }, [ensureContext, stopCue, pause]);
+
+  /** Apoyarlo sobre el surco: suena desde donde cayó, sin ritual de por medio. */
+  const handlePlaceArm = useCallback(
+    (progress: number) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      const length = Number.isFinite(audio.duration) ? audio.duration : state.duration;
+      // Nunca exactamente en el final: caería en `ended` y saltaría de tema sin
+      // que se oiga nada, que parece un bug y no el final de una cara.
+      const at = Math.min(progress * length, Math.max(length - 0.25, 0));
+      try {
+        audio.currentTime = at;
+      } catch {
+        /* sin metadata todavía: arranca donde esté */
+      }
+      dispatch({ type: 'time', value: at });
+      dispatch({ type: 'place' });
+      cue.drop();
+      wantsPlay.current = true;
+      void play();
+    },
+    [audioRef, state.duration, cue, play],
+  );
+
+  /** Devolverlo al apoyo sin apoyarlo en el disco: queda como recién puesto. */
+  const handleParkArm = useCallback(() => {
+    wantsPlay.current = false;
+    pause();
+    const audio = audioRef.current;
+    if (audio) {
+      try {
+        audio.currentTime = 0;
+      } catch {
+        /* ídem */
+      }
+    }
+    dispatch({ type: 'park' });
+  }, [audioRef, pause]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -668,6 +732,9 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
           needle={state.needle}
           lead={state.lead}
           originRect={originRef.current}
+          onGrabArm={handleGrabArm}
+          onPlaceArm={handlePlaceArm}
+          onParkArm={handleParkArm}
           onToggle={handleToggle}
           onPrev={() => step(-1)}
           onNext={() => step(1)}

@@ -96,7 +96,7 @@ export default function AddPanel({ existingIds, onPick, onClose }: Props) {
         {status === 'idle' && (
           <p className={styles.lead}>Records worth putting on first.</p>
         )}
-        {status === 'loading' && <p className={styles.message}>Searching.</p>}
+        {status === 'loading' && <p className={styles.message}>Searching, wait a moment.</p>}
         {status === 'empty' && (
           <p className={styles.message}>No album by that name. Try the artist instead.</p>
         )}

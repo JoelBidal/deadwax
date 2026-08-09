@@ -22,10 +22,13 @@ type Props = {
   duration: number;
   crackle: CrackleLevel;
   volume: number;
-  needle: 'up' | 'cueing' | 'down';
+  needle: 'up' | 'cueing' | 'down' | 'held';
   /** Surco de entrada: la púa ya toca pero la canción no empezó. */
   lead: boolean;
   originRect: DOMRect | null;
+  onGrabArm: () => void;
+  onPlaceArm: (progress: number) => void;
+  onParkArm: () => void;
   onToggle: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -49,9 +52,17 @@ export default function Turntable(props: Props) {
   const { record, album, status, track, trackIndex, playing, time, duration, originRect } = props;
   const { needle, lead } = props;
   // El plato gira desde que arranca el motor y sigue girando en el surco de
-  // entrada, donde todavía no hay música.
-  const spinning = needle === 'cueing' || lead || playing;
-  const phase = needle === 'up' ? 'parked' : needle === 'cueing' ? 'cueing' : 'down';
+  // entrada, donde todavía no hay música. Con el brazo en la mano también: el
+  // motor no se detiene porque uno levante la púa.
+  const spinning = needle === 'cueing' || needle === 'held' || lead || playing;
+  const phase =
+    needle === 'up'
+      ? 'parked'
+      : needle === 'cueing'
+        ? 'cueing'
+        : needle === 'held'
+          ? 'held'
+          : 'down';
   // La púa toca el disco. Al pausar se levanta, aunque el brazo siga adentro.
   const contact = needle === 'down' && (playing || lead);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -198,7 +209,17 @@ export default function Turntable(props: Props) {
             <div ref={deckRef} className={styles.deck}>
               <Platter coverUrl={record.coverUrl} spinning={spinning} />
               <div ref={armRef} className={styles.armLayer}>
-                <Tonearm progress={progress} phase={phase} contact={contact} />
+                <Tonearm
+                  progress={progress}
+                  phase={phase}
+                  contact={contact}
+                  // A mitad del ritual no: el brazo está cruzando solo y
+                  // agarrarlo ahí dejaría el mecanismo a medio camino.
+                  grabbable={status === 'ready' && Boolean(track) && needle !== 'cueing'}
+                  onGrab={props.onGrabArm}
+                  onPlace={props.onPlaceArm}
+                  onPark={props.onParkArm}
+                />
               </div>
             </div>
           </div>

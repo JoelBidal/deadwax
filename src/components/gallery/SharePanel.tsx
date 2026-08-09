@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { encodeShelf, MAX_NAME } from '../../lib/shelf';
+import { encodeShelf, MAX_NAME, MIN_RECORDS } from '../../lib/shelf';
 import styles from './SharePanel.module.css';
 
 type Props = {
@@ -27,12 +27,16 @@ export default function SharePanel({ ids, initialName, onSaveName, onClose }: Pr
   // él la estantería llega firmada como "A shelf". Hasta que exista, no hay link.
   const shelfName = name.trim();
   const named = shelfName.length > 0;
-  const url = named
+  // Faltan discos pesa más que falta el nombre: el nombre se arregla acá mismo,
+  // los discos obligan a cerrar el panel. Se avisa primero lo que cuesta más.
+  const missing = Math.max(MIN_RECORDS - ids.length, 0);
+  const ready = named && missing === 0;
+  const url = ready
     ? `${location.origin}${location.pathname}?shelf=${encodeShelf({ name: shelfName, ids })}`
     : '';
 
   const copy = async () => {
-    if (!named) return;
+    if (!ready) return;
     onSaveName(shelfName);
     try {
       await navigator.clipboard.writeText(url);
@@ -64,7 +68,9 @@ export default function SharePanel({ ids, initialName, onSaveName, onClose }: Pr
         </div>
 
         <p className={styles.lead}>
-          {ids.length} {ids.length === 1 ? 'record' : 'records'}, packed into a link.
+          {missing > 0
+            ? `${ids.length} ${ids.length === 1 ? 'record' : 'records'} so far. A shelf travels with ${MIN_RECORDS}.`
+            : `${ids.length} records, packed into a link.`}
         </p>
         <p className={styles.body}>
           The link carries the shelf itself, so there is nothing to sign up for and nothing stored on
@@ -72,12 +78,16 @@ export default function SharePanel({ ids, initialName, onSaveName, onClose }: Pr
         </p>
 
         <div className={styles.linkRow}>
-          {named ? (
+          {ready ? (
             <span className={styles.url}>{url}</span>
           ) : (
-            <span className={styles.waiting}>Name the shelf and the link appears.</span>
+            <span className={styles.waiting}>
+              {missing > 0
+                ? `Add ${missing} more ${missing === 1 ? 'record' : 'records'} and the link appears.`
+                : 'Name the shelf and the link appears.'}
+            </span>
           )}
-          <button type="button" className={styles.copy} onClick={copy} disabled={!named}>
+          <button type="button" className={styles.copy} onClick={copy} disabled={!ready}>
             {copied === 'ok' ? 'Copied' : copied === 'fail' ? 'Copy failed' : 'Copy link'}
           </button>
         </div>
