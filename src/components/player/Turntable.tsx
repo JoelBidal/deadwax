@@ -22,6 +22,9 @@ type Props = {
   duration: number;
   crackle: CrackleLevel;
   volume: number;
+  needle: 'up' | 'cueing' | 'down';
+  /** Surco de entrada: la púa ya toca pero la canción no empezó. */
+  lead: boolean;
   originRect: DOMRect | null;
   onToggle: () => void;
   onPrev: () => void;
@@ -44,6 +47,13 @@ const CRACKLE_LABEL: Record<CrackleLevel, string> = {
 
 export default function Turntable(props: Props) {
   const { record, album, status, track, trackIndex, playing, time, duration, originRect } = props;
+  const { needle, lead } = props;
+  // El plato gira desde que arranca el motor y sigue girando en el surco de
+  // entrada, donde todavía no hay música.
+  const spinning = needle === 'cueing' || lead || playing;
+  const phase = needle === 'up' ? 'parked' : needle === 'cueing' ? 'cueing' : 'down';
+  // La púa toca el disco. Al pausar se levanta, aunque el brazo siga adentro.
+  const contact = needle === 'down' && (playing || lead);
   const stageRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<HTMLDivElement>(null);
   const armRef = useRef<HTMLDivElement>(null);
@@ -186,9 +196,9 @@ export default function Turntable(props: Props) {
         <div className={styles.deckSide}>
           <div className={styles.platterWrap}>
             <div ref={deckRef} className={styles.deck}>
-              <Platter coverUrl={record.coverUrl} spinning={playing} />
+              <Platter coverUrl={record.coverUrl} spinning={spinning} />
               <div ref={armRef} className={styles.armLayer}>
-                <Tonearm progress={progress} playing={playing} />
+                <Tonearm progress={progress} phase={phase} contact={contact} />
               </div>
             </div>
           </div>
@@ -199,6 +209,9 @@ export default function Turntable(props: Props) {
                 playing={playing}
                 canPrev={trackIndex > 0}
                 canNext={trackIndex < total - 1}
+                // Incluye el surco de entrada: la púa ya bajó pero todavía no
+                // hay canción, y volver a decir "Play" ahí parpadea.
+                cueing={needle === 'cueing' || lead}
                 onToggle={props.onToggle}
                 onPrev={props.onPrev}
                 onNext={props.onNext}

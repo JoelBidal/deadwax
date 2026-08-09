@@ -21,6 +21,7 @@ import {
 } from '../lib/storage';
 import { useAudioEngine } from '../hooks/useAudioEngine';
 import { useCrackle } from '../hooks/useCrackle';
+import { MUSIC_FADE, useCue } from '../hooks/useCue';
 import { useTheme } from '../hooks/useTheme';
 import Gallery from './gallery/Gallery';
 import AddPanel, { type PickableAlbum } from './gallery/AddPanel';
@@ -38,6 +39,14 @@ type State = {
   playing: boolean;
   time: number;
   duration: number;
+  /**
+   * Dónde está la púa en este disco. `up` es un disco recién puesto que todavía
+   * no sonó; el ritual de bajarla ocurre una sola vez por disco, y de ahí en
+   * más pasar de tema es instantáneo.
+   */
+  needle: 'up' | 'cueing' | 'down';
+  /** Entre la caída de la púa y la primera nota: sólo se escucha la superficie. */
+  lead: boolean;
 };
 
 type Action =
@@ -47,6 +56,9 @@ type Action =
   | { type: 'minimize' }
   | { type: 'expand' }
   | { type: 'stop' }
+  | { type: 'cue' }
+  | { type: 'drop' }
+  | { type: 'groove' }
   | { type: 'track'; index: number }
   | { type: 'playing'; value: boolean }
   | { type: 'time'; value: number }
@@ -61,6 +73,8 @@ const initial: State = {
   playing: false,
   time: 0,
   duration: 30,
+  needle: 'up',
+  lead: false,
 };
 
 function reducer(state: State, action: Action): State {
@@ -78,6 +92,13 @@ function reducer(state: State, action: Action): State {
       return { ...state, view: 'player' };
     case 'stop':
       return initial;
+    case 'cue':
+      return { ...state, needle: 'cueing' };
+    case 'drop':
+      return { ...state, needle: 'down', lead: true };
+    // La púa dejó el surco de entrada: entra la canción.
+    case 'groove':
+      return { ...state, lead: false };
     case 'track':
       return { ...state, trackIndex: action.index, time: 0 };
     case 'playing':
@@ -105,10 +126,24 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
   const [theme, toggleTheme] = useTheme();
   const [crackle, setCrackle] = useState<CrackleLevel>('normal');
   const [volume, setVolume] = useState(1);
-  const { audioRef, ctxRef, ensureContext, play, pause, load, setVolume: applyVolume } =
-    useAudioEngine();
+  const {
+    audioRef,
+    ctxRef,
+    masterRef,
+    ensureContext,
+    play,
+    pause,
+    load,
+    setVolume: applyVolume,
+    fadeMusicIn,
+    resetMusicGain,
+  } = useAudioEngine();
+  const cue = useCue(ctxRef, masterRef);
 
-  useCrackle(ctxRef, crackle, state.playing);
+  // El ruido de superficie corre mientras la púa toca: durante el surco de
+  // entrada suena solo, y ahí se lo escucha de verdad. Sube un poco en ese
+  // tramo porque el surco de entrada de un disco es más sucio que el grabado.
+  useCrackle(ctxRef, masterRef, crackle, state.playing || state.lead, state.lead ? 1.9 : 1);
 
   const galleryRef = useRef<HTMLDivElement>(null);
   const originRef = useRef<DOMRect | null>(null);
@@ -151,6 +186,16 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
   const track = state.album?.tracks[state.trackIndex] ?? null;
   const total = state.album?.tracks.length ?? 0;
 
+  /**
+   * Cortar el ritual. Devuelve el gain de la música a tope: si se cancela justo
+   * durante el fundido de entrada, quedaría a media asta y el próximo disco
+   * arrancaría bajito sin motivo visible.
+   */
+  const stopCue = useCallback(() => {
+    cue.cancel();
+    resetMusicGain();
+  }, [cue, resetMusicGain]);
+
   const handleSelect = useCallback(
     (id: string, from: HTMLElement) => {
       const record = library.find((r) => r.id === id);
@@ -160,15 +205,44 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
       // Dentro del gesto del usuario, antes de cualquier await: si no, el
       // AudioContext nace suspendido y el primer play falla en silencio.
       ensureContext();
-      wantsPlay.current = true;
+      // El disco entra al plato con la púa afuera. Sacar un disco de la funda no
+      // es lo mismo que ponerlo a sonar, y acá esa diferencia es el proyecto.
+      stopCue();
+      wantsPlay.current = false;
       dispatch({ type: 'select', record });
     },
-    [library, ensureContext],
+    [library, ensureContext, stopCue],
   );
+
+  /**
+   * Bajar la púa: el botón mecánico, el plato tomando velocidad, el brazo
+   * cruzando y la aguja tocando. Sólo la primera vez de cada disco; después,
+   * pasar de tema es inmediato.
+   */
+  const lowerNeedle = useCallback(() => {
+    ensureContext();
+    wantsPlay.current = false;
+    dispatch({ type: 'cue' });
+    cue.start({
+      onReach: () => dispatch({ type: 'drop' }),
+      onMusic: () => {
+        dispatch({ type: 'groove' });
+        wantsPlay.current = true;
+        fadeMusicIn(MUSIC_FADE);
+        void play();
+      },
+    });
+  }, [ensureContext, cue, fadeMusicIn, play]);
 
   const handleToggle = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !track) return;
+    // A mitad del ritual el botón no hace nada: la púa ya está bajando.
+    if (state.needle === 'cueing') return;
+    if (state.needle === 'up') {
+      lowerNeedle();
+      return;
+    }
     if (audio.paused) {
       wantsPlay.current = true;
       void play();
@@ -176,7 +250,7 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
       wantsPlay.current = false;
       pause();
     }
-  }, [audioRef, track, play, pause]);
+  }, [audioRef, track, state.needle, lowerNeedle, play, pause]);
 
   /** Volver a la estantería no interrumpe la música: el disco queda en la barra. */
   const handleClose = useCallback(() => {
@@ -184,17 +258,21 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
       dispatch({ type: 'minimize' });
       return;
     }
-    // Nunca llegó a sonar: no hay nada que dejar prendido.
+    // Nunca llegó a sonar: no hay nada que dejar prendido. Si estaba a mitad del
+    // ritual, irse lo cancela; nadie quiere oír caer una púa sobre un disco que
+    // ya no está en pantalla.
+    stopCue();
     wantsPlay.current = false;
     pause();
     dispatch({ type: 'stop' });
-  }, [state.album, state.playing, state.time, pause]);
+  }, [state.album, state.playing, state.time, pause, stopCue]);
 
   const handleStop = useCallback(() => {
+    stopCue();
     wantsPlay.current = false;
     pause();
     dispatch({ type: 'stop' });
-  }, [pause]);
+  }, [pause, stopCue]);
 
   /**
    * Volver a la estantería propia sin recargar: cierra lo que haya abierto y
@@ -234,10 +312,19 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
     [state.trackIndex, total],
   );
 
-  const pick = useCallback((index: number) => {
-    wantsPlay.current = true;
-    dispatch({ type: 'track', index });
-  }, []);
+  /** Elegir un tema de la lista es poner el disco: con la púa arriba, hay ritual. */
+  const pick = useCallback(
+    (index: number) => {
+      if (state.needle === 'cueing') return;
+      dispatch({ type: 'track', index });
+      if (state.needle === 'up') {
+        lowerNeedle();
+        return;
+      }
+      wantsPlay.current = true;
+    },
+    [state.needle, lowerNeedle],
+  );
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -578,6 +665,8 @@ export default function VinylApp({ seed }: { seed: Seed[] }) {
           duration={state.duration}
           crackle={crackle}
           volume={volume}
+          needle={state.needle}
+          lead={state.lead}
           originRect={originRef.current}
           onToggle={handleToggle}
           onPrev={() => step(-1)}

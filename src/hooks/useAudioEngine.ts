@@ -8,11 +8,22 @@ import { useCallback, useRef } from 'react';
  * El <audio> tiene que llevar crossOrigin="anonymous". El CDN de iTunes manda
  * access-control-allow-origin, pero sin el atributo el medio queda "tainted" y
  * el grafo de Web Audio devuelve silencio en vez de fallar visiblemente.
+ *
+ * El grafo:
+ *
+ *   <audio> ─→ music ─┐
+ *   crackle ──────────┼─→ master ─→ destino
+ *   mecanismo ────────┘
+ *
+ * `master` es el volumen, y todo pasa por ahí: antes el crackle iba directo al
+ * destino y el control de volumen no lo tocaba. `music` existe aparte para
+ * poder entrar con la canción sin cortar el ruido de superficie.
  */
 export function useAudioEngine() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
+  const masterRef = useRef<GainNode | null>(null);
+  const musicRef = useRef<GainNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   /** El volumen elegido sobrevive a que todavía no exista el contexto. */
   const volumeRef = useRef(1);
@@ -24,17 +35,22 @@ export function useAudioEngine() {
         window.AudioContext ??
         (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctor) return null;
-      ctxRef.current = new Ctor();
-      gainRef.current = ctxRef.current.createGain();
-      gainRef.current.gain.value = volumeRef.current;
-      gainRef.current.connect(ctxRef.current.destination);
+      const ctx = new Ctor();
+      ctxRef.current = ctx;
+
+      masterRef.current = ctx.createGain();
+      masterRef.current.gain.value = volumeRef.current;
+      masterRef.current.connect(ctx.destination);
+
+      musicRef.current = ctx.createGain();
+      musicRef.current.connect(masterRef.current);
     }
 
     const ctx = ctxRef.current;
     const audio = audioRef.current;
-    if (audio && gainRef.current && !sourceRef.current) {
+    if (audio && musicRef.current && !sourceRef.current) {
       sourceRef.current = ctx.createMediaElementSource(audio);
-      sourceRef.current.connect(gainRef.current);
+      sourceRef.current.connect(musicRef.current);
     }
     if (ctx.state === 'suspended') void ctx.resume();
     return ctx;
@@ -70,10 +86,39 @@ export function useAudioEngine() {
    */
   const setVolume = useCallback((value: number) => {
     volumeRef.current = value;
-    const gain = gainRef.current;
+    const gain = masterRef.current;
     const ctx = ctxRef.current;
     if (gain && ctx) gain.gain.setTargetAtTime(value, ctx.currentTime, 0.015);
   }, []);
 
-  return { audioRef, ctxRef, gainRef, ensureContext, play, pause, load, setVolume };
+  /** La canción entra desde el silencio: aparecer de golpe tapa la caída de la púa. */
+  const fadeMusicIn = useCallback((seconds: number) => {
+    const gain = musicRef.current;
+    const ctx = ctxRef.current;
+    if (!gain || !ctx) return;
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(1, ctx.currentTime + seconds);
+  }, []);
+
+  const resetMusicGain = useCallback(() => {
+    const gain = musicRef.current;
+    const ctx = ctxRef.current;
+    if (!gain || !ctx) return;
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setValueAtTime(1, ctx.currentTime);
+  }, []);
+
+  return {
+    audioRef,
+    ctxRef,
+    masterRef,
+    ensureContext,
+    play,
+    pause,
+    load,
+    setVolume,
+    fadeMusicIn,
+    resetMusicGain,
+  };
 }

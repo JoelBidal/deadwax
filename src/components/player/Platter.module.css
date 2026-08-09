@@ -30,20 +30,9 @@
     ),
     radial-gradient(circle at 50% 50%, #1c2123 0 34%, #121516 62%, #171b1d 100%);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
-  animation: spin 1.8s linear infinite;
-  animation-play-state: paused;
+  /* La rotación la lleva GSAP: el plato arranca acelerando y frena por inercia,
+     y una animación de CSS no puede cambiar de velocidad sin saltar de ángulo. */
   will-change: transform;
-}
-
-/* 33⅓ RPM reales: 60 / (100/3) = 1.8s por vuelta. */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.spinning {
-  animation-play-state: running;
 }
 
 .label {
@@ -90,8 +79,3 @@
   pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .vinyl {
-    animation: none;
-  }
-}

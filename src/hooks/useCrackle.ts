@@ -40,12 +40,15 @@ function buildCrackle(ctx: AudioContext): AudioBuffer {
 
 export function useCrackle(
   ctxRef: RefObject<AudioContext | null>,
+  destRef: RefObject<GainNode | null>,
   level: CrackleLevel,
-  playing: boolean,
+  active: boolean,
+  /** En el surco de entrada el ruido de superficie es lo único que suena. */
+  boost = 1,
 ) {
   const nodesRef = useRef<{ source: AudioBufferSourceNode; gain: GainNode } | null>(null);
   const bufferRef = useRef<AudioBuffer | null>(null);
-  const active = level !== 'off' && playing;
+  const target = level === 'off' ? 0 : GAIN[level] * boost;
 
   useEffect(() => {
     const ctx = ctxRef.current;
@@ -71,7 +74,7 @@ export function useCrackle(
     // Ya sonando: cambiar de intensidad mueve el gain, no rearma el grafo. Cortar
     // y volver a arrancar reiniciaría el loop y se oiría el salto.
     if (nodesRef.current) {
-      nodesRef.current.gain.gain.setTargetAtTime(GAIN[level], ctx.currentTime, 0.15);
+      nodesRef.current.gain.gain.setTargetAtTime(target, ctx.currentTime, 0.15);
       return;
     }
 
@@ -91,12 +94,17 @@ export function useCrackle(
 
     const gain = ctx.createGain();
     gain.gain.value = 0;
-    gain.gain.setTargetAtTime(GAIN[level], ctx.currentTime, 0.4);
+    // Ataque corto: el ruido entra con la púa, no se desvanece hacia adentro.
+    gain.gain.setTargetAtTime(target, ctx.currentTime, 0.12);
 
-    source.connect(highpass).connect(lowpass).connect(gain).connect(ctx.destination);
+    source
+      .connect(highpass)
+      .connect(lowpass)
+      .connect(gain)
+      .connect(destRef.current ?? ctx.destination);
     source.start();
     nodesRef.current = { source, gain };
-  }, [ctxRef, active, level]);
+  }, [ctxRef, destRef, active, target]);
 
   useEffect(
     () => () => {
